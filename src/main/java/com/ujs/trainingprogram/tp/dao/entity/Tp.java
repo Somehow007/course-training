@@ -1,4 +1,4 @@
-package com.ujs.trainingprogram.tp.model;
+package com.ujs.trainingprogram.tp.dao.entity;
 
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;

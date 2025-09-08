@@ -4,8 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.ujs.trainingprogram.tp.common.Constant;
 import com.ujs.trainingprogram.tp.common.result.ResultData;
 import com.ujs.trainingprogram.tp.common.result.ResultMessage;
-import com.ujs.trainingprogram.tp.model.College;
-import com.ujs.trainingprogram.tp.model.User;
+import com.ujs.trainingprogram.tp.dao.entity.CollegeDO;
+import com.ujs.trainingprogram.tp.dao.entity.UserDO;
 import com.ujs.trainingprogram.tp.service.CollegeService;
 import com.ujs.trainingprogram.tp.service.UserService;
 import lombok.extern.slf4j.Slf4j;
@@ -36,16 +36,16 @@ public class UserController {
     public ResultData getPersonalMessage() {
         log.info("开始获取个人信息");
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        User user = (User) principal;
-        String userName = user.getUserId();
+        UserDO userDO = (UserDO) principal;
+        String userName = userDO.getUserId();
         System.out.println(userName);
-        if (user != null) {
+        if (userDO != null) {
             UserReturn userReturn = new UserReturn();
-            userReturn.userId = user.getUserId();
-            userReturn.userState = user.getUserState();
-            College college = collegeService.getById(user.getCollegeId());
-            if (college != null) {
-                userReturn.collegeName = college.getCollegeName();
+            userReturn.userId = userDO.getUserId();
+            userReturn.userState = userDO.getUserState();
+            CollegeDO collegeDO = collegeService.getById(userDO.getCollegeId());
+            if (collegeDO != null) {
+                userReturn.collegeName = collegeDO.getCollegeName();
             }
             long i = 1;
             return new ResultData(i, i, i, userReturn);
@@ -62,17 +62,17 @@ public class UserController {
                                  @RequestParam(value = "user_id", defaultValue = "") String userId,
                                  @RequestParam(value = "user_state", defaultValue = "") String userState,
                                  @RequestParam(value = "college_name", defaultValue = "") String collegeName) {
-        QueryWrapper<User> wrapper = new QueryWrapper<>();
+        QueryWrapper<UserDO> wrapper = new QueryWrapper<>();
         wrapper.like(!userId.equals(""), "user_id", userId);
         wrapper.like(!userState.equals(""), "user_state", userState);
         if (!collegeName.isEmpty()) {
-            List<College> collegeList = collegeService.getCollegeLikeByName(collegeName);
-            if (collegeList.size() > 0) {
+            List<CollegeDO> collegeDOList = collegeService.getCollegeLikeByName(collegeName);
+            if (collegeDOList.size() > 0) {
                 //可进行模糊查找
                 wrapper.and(i -> {
-                    i.like("college_id", collegeList.get(0).getCollegeId());
-                    for (int j = 1; j < collegeList.size(); j++) {
-                        i.or().like("college_id", collegeList.get(j).getCollegeId());
+                    i.like("college_id", collegeDOList.get(0).getCollegeId());
+                    for (int j = 1; j < collegeDOList.size(); j++) {
+                        i.or().like("college_id", collegeDOList.get(j).getCollegeId());
                     }
                 });
             }
@@ -87,9 +87,9 @@ public class UserController {
     @PutMapping("/user/resetPassword")
     public ResultMessage resetPassword(@RequestParam(value = "password", defaultValue = "") String password) {
         if (password.equals("")) return ResultMessage.PARAM_MISS;
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        user.setUserPassword(encoder.encode(password));
-        return userService.saveOrUpdate(user) ? ResultMessage.UPDATE_SUCCESS : ResultMessage.UPDATE_ERROR;
+        UserDO userDO = (UserDO) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        userDO.setUserPassword(encoder.encode(password));
+        return userService.saveOrUpdate(userDO) ? ResultMessage.UPDATE_SUCCESS : ResultMessage.UPDATE_ERROR;
     }
 
     /**
@@ -98,10 +98,10 @@ public class UserController {
      */
     @PutMapping("/user/resetPasswordEqualUserId")
     public ResultMessage resetPasswordEqualUserId() {
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if (user == null) return ResultMessage.UPDATE_ERROR;
-        user.setUserPassword(encoder.encode(user.getUserId()));
-        return userService.saveOrUpdate(user) ? ResultMessage.UPDATE_SUCCESS : ResultMessage.UPDATE_ERROR;
+        UserDO userDO = (UserDO) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (userDO == null) return ResultMessage.UPDATE_ERROR;
+        userDO.setUserPassword(encoder.encode(userDO.getUserId()));
+        return userService.saveOrUpdate(userDO) ? ResultMessage.UPDATE_SUCCESS : ResultMessage.UPDATE_ERROR;
     }
 
     /**
@@ -110,14 +110,14 @@ public class UserController {
      */
     @PutMapping("/user/resetPasswordByRandom")
     public ResultMessage resetPasswordByRandom() {
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if (user == null) return ResultMessage.UPDATE_ERROR;
+        UserDO userDO = (UserDO) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (userDO == null) return ResultMessage.UPDATE_ERROR;
         String newPassword = passRandom();
-        user.setUserPassword(encoder.encode(newPassword));
+        userDO.setUserPassword(encoder.encode(newPassword));
         ResultMessage resultMessage = new ResultMessage();
         resultMessage.setCode(Constant.OK);
         resultMessage.setMsg(newPassword);
-        return userService.saveOrUpdate(user) ? resultMessage : ResultMessage.UPDATE_ERROR;
+        return userService.saveOrUpdate(userDO) ? resultMessage : ResultMessage.UPDATE_ERROR;
     }
 
     /**
@@ -131,18 +131,18 @@ public class UserController {
         if (StringUtils.isAnyEmpty(userId, userPassword, userState, collegeName)) {
             return ResultMessage.PARAM_MISS;
         }
-        QueryWrapper<College> wrapper = new QueryWrapper<>();
+        QueryWrapper<CollegeDO> wrapper = new QueryWrapper<>();
         wrapper.eq("college_name", collegeName);
-        College college = collegeService.getOne(wrapper);
-        if (college == null) return ResultMessage.ADD_ERROR;
+        CollegeDO collegeDO = collegeService.getOne(wrapper);
+        if (collegeDO == null) return ResultMessage.ADD_ERROR;
         if (!userState.equals("21") || !userState.equals("22")) return ResultMessage.ADD_ERROR;
-        User user = new User();
-        user.setUserPassword(encoder.encode(userPassword));
-        user.setUserState(userState);
-        user.setUserId(userId);
-        user.setCollegeId(college.getCollegeId());
+        UserDO userDO = new UserDO();
+        userDO.setUserPassword(encoder.encode(userPassword));
+        userDO.setUserState(userState);
+        userDO.setUserId(userId);
+        userDO.setCollegeId(collegeDO.getCollegeId());
 
-        return userService.save(user) ? ResultMessage.ADD_SUCCESS : ResultMessage.ADD_ERROR;
+        return userService.save(userDO) ? ResultMessage.ADD_SUCCESS : ResultMessage.ADD_ERROR;
     }
 
     /**
@@ -151,8 +151,8 @@ public class UserController {
     @DeleteMapping("/mainAdmin/delete")
     public ResultMessage deleteUser(@RequestParam(value = "user_id", defaultValue = "") String userId) {
         if (StringUtils.isEmpty(userId)) return ResultMessage.PARAM_MISS;
-        User user = userService.getById(userId);
-        if (user.getUserState().equals("20")) return ResultMessage.DELETE_ERROR;
+        UserDO userDO = userService.getById(userId);
+        if (userDO.getUserState().equals("20")) return ResultMessage.DELETE_ERROR;
 
         return userService.removeById(userId) ? ResultMessage.DELETE_SUCCESS : ResultMessage.DELETE_ERROR;
     }
@@ -167,19 +167,19 @@ public class UserController {
                                     @RequestParam(value = "user_password", defaultValue = "") String userPassword) {
         if (!StringUtils.isAnyEmpty(userId, userState, collegeName, userPassword)) return ResultMessage.UPDATE_ERROR;
         if (!userState.equals("21") || !userState.equals("22")) return ResultMessage.UPDATE_ERROR;
-        QueryWrapper<College> wrapper = new QueryWrapper<>();
+        QueryWrapper<CollegeDO> wrapper = new QueryWrapper<>();
         wrapper.eq("college_name", collegeName);
-        College college = collegeService.getOne(wrapper);
-        if (college == null) return ResultMessage.UPDATE_ERROR;
-        User user = userService.getById(userId);
+        CollegeDO collegeDO = collegeService.getOne(wrapper);
+        if (collegeDO == null) return ResultMessage.UPDATE_ERROR;
+        UserDO userDO = userService.getById(userId);
         if (!StringUtils.isEmpty(userPassword)) {
             if (userPassword.length() < 8) return ResultMessage.UPDATE_ERROR;
-            user.setUserPassword(encoder.encode(userPassword));
+            userDO.setUserPassword(encoder.encode(userPassword));
         }
-        user.setUserState(userState);
-        user.setCollegeId(college.getCollegeId());
+        userDO.setUserState(userState);
+        userDO.setCollegeId(collegeDO.getCollegeId());
 
-        return userService.saveOrUpdate(user) ? ResultMessage.UPDATE_SUCCESS : ResultMessage.UPDATE_ERROR;
+        return userService.saveOrUpdate(userDO) ? ResultMessage.UPDATE_SUCCESS : ResultMessage.UPDATE_ERROR;
     }
 
     /**
@@ -188,10 +188,10 @@ public class UserController {
      */
     @PutMapping("/mainAdmin/resetPasswordEqualUserId")
     public ResultMessage resetPasswordEqualMainAdminId() {
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if (user == null) return ResultMessage.UPDATE_ERROR;
-        user.setUserPassword(encoder.encode(user.getUserId()));
-        return userService.saveOrUpdate(user) ? ResultMessage.UPDATE_SUCCESS : ResultMessage.UPDATE_ERROR;
+        UserDO userDO = (UserDO) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (userDO == null) return ResultMessage.UPDATE_ERROR;
+        userDO.setUserPassword(encoder.encode(userDO.getUserId()));
+        return userService.saveOrUpdate(userDO) ? ResultMessage.UPDATE_SUCCESS : ResultMessage.UPDATE_ERROR;
     }
 
     /**
@@ -200,11 +200,11 @@ public class UserController {
      */
     @PutMapping("/mainAdmin/resetPasswordByRandom")
     public ResultMessage resetMainAdminPasswordByRandom() {
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if (user == null) return ResultMessage.UPDATE_ERROR;
+        UserDO userDO = (UserDO) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (userDO == null) return ResultMessage.UPDATE_ERROR;
         String newPassword = passRandom();
-        user.setUserPassword(encoder.encode(newPassword));
-        return userService.saveOrUpdate(user) ? ResultMessage.UPDATE_SUCCESS : ResultMessage.UPDATE_ERROR;
+        userDO.setUserPassword(encoder.encode(newPassword));
+        return userService.saveOrUpdate(userDO) ? ResultMessage.UPDATE_SUCCESS : ResultMessage.UPDATE_ERROR;
     }
 
 

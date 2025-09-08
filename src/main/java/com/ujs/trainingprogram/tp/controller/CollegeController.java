@@ -1,11 +1,16 @@
 package com.ujs.trainingprogram.tp.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.ujs.trainingprogram.tp.common.result.ResultData;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.ujs.trainingprogram.tp.common.result.Result;
 import com.ujs.trainingprogram.tp.common.result.ResultMessage;
-import com.ujs.trainingprogram.tp.model.College;
-import com.ujs.trainingprogram.tp.model.Major;
-import com.ujs.trainingprogram.tp.model.User;
+import com.ujs.trainingprogram.tp.common.web.Results;
+import com.ujs.trainingprogram.tp.dao.entity.CollegeDO;
+import com.ujs.trainingprogram.tp.dao.entity.MajorDO;
+import com.ujs.trainingprogram.tp.dao.entity.UserDO;
+import com.ujs.trainingprogram.tp.dto.req.college.CollegePageReqDTO;
+import com.ujs.trainingprogram.tp.dto.req.college.CollegeSaveReqDTO;
+import com.ujs.trainingprogram.tp.dto.resp.CollegePageRespDTO;
 import com.ujs.trainingprogram.tp.service.CollegeService;
 import com.ujs.trainingprogram.tp.service.MajorService;
 import com.ujs.trainingprogram.tp.service.UserService;
@@ -30,48 +35,58 @@ import java.util.List;
     private final MajorService majorService;
 
     /**
-     * 查询所有学院
-     *
-     * @param page 分页页数
-     * @param size 分页大小
-     * @param collegeId 学院id
-     * @param collegeName 学院名称
-     * @return 统一返回值
+     * 分页查询所有学院
      */
-    @RequestMapping("/college/")
-    public ResultData getAllColleges(@RequestParam(value = "page", defaultValue = "0") Integer page,
-                                     @RequestParam(value = "size", defaultValue = "10") Integer size,
-                                     @RequestParam(value = "college_id", defaultValue = "") String collegeId,
-                                     @RequestParam(value = "college_name", defaultValue = "") String collegeName) {
-        log.info("请求参数: page= {}", page,
-                ", size = " + size,
-                ", college_id = " + collegeId,
-                ", college_name = " + collegeName);
-        QueryWrapper<College> wrapper = new QueryWrapper<>();
-        if (!StringUtils.isEmpty(collegeId)) {
-            wrapper.eq(!collegeName.equals(""), "college_name", collegeName);
-        }
-        return collegeService.selectWithWrapper(page, size, wrapper);
+    @RequestMapping("/college/page")
+    public Result<IPage<CollegePageRespDTO>> getAllColleges(CollegePageReqDTO requestParam) {
+        log.info("请求参数: page= {}", requestParam.getPages(),
+                ", size = " + requestParam.getSize(),
+                ", college_id = " + requestParam.getCollegeId(),
+                ", college_name = " + requestParam.getCollegeName());
+//        QueryWrapper<CollegeDO> wrapper = new QueryWrapper<>();
+//        if (!StringUtils.isEmpty(collegeId)) {
+//            wrapper.eq(!collegeName.equals(""), "college_name", collegeName);
+//        }
+        return Results.success(collegeService.pageCollege(requestParam));
     }
 
+
     /**
-     * 增加学院
-     * @param collegeName
-     * @return
+     * 添加学院
      */
     @PostMapping("/college/mainAdmin/add")
-    public ResultMessage addCollege(@RequestParam(value = "college_name", defaultValue = "") String collegeName) {
-        if (StringUtils.isEmpty(collegeName)) return ResultMessage.PARAM_MISS;
-        College sqlCollege = collegeService.getCollegeByName(collegeName);
-        if (sqlCollege != null) return new ResultMessage(-1, "该学院已存在");
-        College college = new College();
-        college.setCourseNum(0);
-        college.setCollegeName(collegeName);
-        int id = Integer.parseInt(collegeService.getMaxCollegeId()) + 1;
-        String newId = String.valueOf(id);
-        college.setCollegeId(newId);
-        return collegeService.save(college) ? ResultMessage.ADD_SUCCESS : ResultMessage.ADD_ERROR;
+    public Result<Void> createCollege(@RequestBody CollegeSaveReqDTO requestParam) {
+        collegeService.createCollege(requestParam);
+        return Results.success();
+//        if (StringUtils.isEmpty(collegeName)) return ResultMessage.PARAM_MISS;
+//        CollegeDO sqlCollegeDO = collegeService.getCollegeByName(collegeName);
+//        if (sqlCollegeDO != null) return new ResultMessage(-1, "该学院已存在");
+//        CollegeDO collegeDO = new CollegeDO();
+//        collegeDO.setCourseNum(0);
+//        collegeDO.setCollegeName(collegeName);
+//        int id = Integer.parseInt(collegeService.getMaxCollegeId()) + 1;
+//        String newId = String.valueOf(id);
+//        collegeDO.setCollegeId(newId);
+//        return collegeService.save(collegeDO) ? ResultMessage.ADD_SUCCESS : ResultMessage.ADD_ERROR;
     }
+
+
+//    /**
+//     * 添加学院
+//     */
+//    @PostMapping("/college/mainAdmin/add")
+//    public ResultMessage createCollege(@RequestParam(value = "college_name", defaultValue = "") String collegeName) {
+//        if (StringUtils.isEmpty(collegeName)) return ResultMessage.PARAM_MISS;
+//        CollegeDO sqlCollegeDO = collegeService.getCollegeByName(collegeName);
+//        if (sqlCollegeDO != null) return new ResultMessage(-1, "该学院已存在");
+//        CollegeDO collegeDO = new CollegeDO();
+//        collegeDO.setCourseNum(0);
+//        collegeDO.setCollegeName(collegeName);
+//        int id = Integer.parseInt(collegeService.getMaxCollegeId()) + 1;
+//        String newId = String.valueOf(id);
+//        collegeDO.setCollegeId(newId);
+//        return collegeService.save(collegeDO) ? ResultMessage.ADD_SUCCESS : ResultMessage.ADD_ERROR;
+//    }
 
     /**
      * 删除学院
@@ -81,34 +96,31 @@ import java.util.List;
     @DeleteMapping("/college/mainAdmin/delete")
     public ResultMessage deleteCollege(@RequestParam(value = "college_id", defaultValue = "") String collegeId) {
         if (StringUtils.isEmpty(collegeId)) return ResultMessage.PARAM_MISS;
-        College college = collegeService.getById(collegeId);
-        if (college == null) return ResultMessage.DELETE_ERROR;
+        CollegeDO collegeDO = collegeService.getById(collegeId);
+        if (collegeDO == null) return ResultMessage.DELETE_ERROR;
 
-        QueryWrapper<User> userWrapper =  new QueryWrapper<>();
-        userWrapper.eq("college_id", college.getCollegeId());
-        List<User> userList = userService.getBaseMapper().selectList(userWrapper);
-        if (userList.size() > 0) return ResultMessage.DELETE_ERROR;
+        QueryWrapper<UserDO> userWrapper =  new QueryWrapper<>();
+        userWrapper.eq("college_id", collegeDO.getCollegeId());
+        List<UserDO> userDOList = userService.getBaseMapper().selectList(userWrapper);
+        if (userDOList.size() > 0) return ResultMessage.DELETE_ERROR;
 
-        List<Major> majors = majorService.getMajorByCollegeId(collegeId);
-        if (majors.size() > 0) return ResultMessage.DELETE_ERROR;
+        List<MajorDO> majorDOS = majorService.getMajorByCollegeId(collegeId);
+        if (majorDOS.size() > 0) return ResultMessage.DELETE_ERROR;
 
         return collegeService.removeById(collegeId) ? ResultMessage.DELETE_SUCCESS : ResultMessage.DELETE_ERROR;
     }
 
     /**
      * 修改学院
-     * @param collegeId
-     * @param collegeName
-     * @return
      */
     @PutMapping("/college/mainAdmin/update")
     public ResultMessage updateCollege(@RequestParam(value = "college_id", defaultValue = "") String collegeId,
                                        @RequestParam(value = "college_name", defaultValue = "") String collegeName) {
         if (StringUtils.isAnyEmpty(collegeId, collegeName)) return ResultMessage.PARAM_MISS;
-        College college = collegeService.getById(collegeId);
-        if (college == null) return ResultMessage.PARAM_MISS;
+        CollegeDO collegeDO = collegeService.getById(collegeId);
+        if (collegeDO == null) return ResultMessage.PARAM_MISS;
 
-        college.setCollegeName(collegeName);
-        return collegeService.saveOrUpdate(college) ? ResultMessage.UPDATE_SUCCESS : ResultMessage.UPDATE_ERROR;
+        collegeDO.setCollegeName(collegeName);
+        return collegeService.saveOrUpdate(collegeDO) ? ResultMessage.UPDATE_SUCCESS : ResultMessage.UPDATE_ERROR;
     }
 }

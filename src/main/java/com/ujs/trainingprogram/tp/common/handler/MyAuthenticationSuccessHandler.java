@@ -2,7 +2,7 @@ package com.ujs.trainingprogram.tp.common.handler;
 
 import com.alibaba.fastjson2.JSONObject;
 import com.ujs.trainingprogram.tp.common.result.ResultMessage;
-import com.ujs.trainingprogram.tp.model.User;
+import com.ujs.trainingprogram.tp.dao.entity.UserDO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -31,7 +31,7 @@ public class MyAuthenticationSuccessHandler implements AuthenticationSuccessHand
                 authentication.getAuthorities()
         );
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        UserDO userDO = (UserDO) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
         response.setContentType("application/json;charset=utf-8");
         try (PrintWriter out = response.getWriter()) {
@@ -39,6 +39,6 @@ public class MyAuthenticationSuccessHandler implements AuthenticationSuccessHand
             out.write(JSONObject.toJSONString(ResultMessage.LOGIN_SUCCESS));
         }
         log.info("Principal类型: {}", authentication.getPrincipal().getClass().getName());
-        log.warn("MyAuthenticationSuccessHandler用户信息：{}", user);
+        log.warn("MyAuthenticationSuccessHandler用户信息：{}", userDO);
     }
 }

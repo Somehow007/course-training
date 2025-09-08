@@ -1,26 +1,58 @@
 package com.ujs.trainingprogram.tp.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.ujs.trainingprogram.tp.common.result.ResultData;
-import com.ujs.trainingprogram.tp.model.College;
+import com.ujs.trainingprogram.tp.dao.entity.CollegeDO;
+import com.ujs.trainingprogram.tp.dto.req.college.CollegePageReqDTO;
+import com.ujs.trainingprogram.tp.dto.req.college.CollegeSaveReqDTO;
+import com.ujs.trainingprogram.tp.dto.req.college.CollegeUpdateReqDTO;
+import com.ujs.trainingprogram.tp.dto.resp.CollegePageRespDTO;
 
 import java.util.List;
 
-public interface CollegeService extends IService<College> {
+public interface CollegeService extends IService<CollegeDO> {
     String getMaxCollegeId();
 
-    List<College> getCollegeLikeByName(String collegeName);
+    /**
+     * 创建学院
+     *
+     * @param requestParam 创建学院请求参数
+     */
+    void createCollege(CollegeSaveReqDTO requestParam);
 
+    /**
+     * 修改学院
+     *
+     * @param requestParam 修改学院请求参数
+     */
+    void updateCollege(CollegeUpdateReqDTO requestParam);
+
+    /**
+     * 通过学院名称模糊查找
+     *
+     * @param collegeName 学院名称
+     * @return 查询到的学院列表
+     */
+    List<CollegeDO> getCollegeLikeByName(String collegeName);
+
+    /**
+     * 获取学院的总课程数
+     */
     void countAll();
 
-    ResultData selectWithWrapper(long cur, long size, QueryWrapper<College> wrapper);
+    /**
+     * 学院分页查询
+     *
+     * @param requestParam 学院分页查询请求参数
+     * @return 学院分页查询返回结果
+     */
+    IPage<CollegePageRespDTO> pageCollege(CollegePageReqDTO requestParam);
 
     void modifyCourseNum(String collegeId, int num);
 
-    List<College> getCollegeNameAndId();
+    List<CollegeDO> getCollegeNameAndId();
 
-    College getCollegeByName(String collegeName);
+    CollegeDO getCollegeByName(String collegeName);
 
 //    List<College> getCollegeNameAndCourseNum();
 }

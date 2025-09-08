@@ -4,8 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ujs.trainingprogram.tp.common.result.ResultData;
-import com.ujs.trainingprogram.tp.mapper.MajorMapper;
-import com.ujs.trainingprogram.tp.model.Major;
+import com.ujs.trainingprogram.tp.dao.mapper.MajorMapper;
+import com.ujs.trainingprogram.tp.dao.entity.MajorDO;
 import com.ujs.trainingprogram.tp.service.CollegeService;
 import com.ujs.trainingprogram.tp.service.CourseService;
 import com.ujs.trainingprogram.tp.service.MajorService;
@@ -16,7 +16,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 @Service
-public class MajorServiceImpl extends ServiceImpl<MajorMapper, Major> implements MajorService {
+public class MajorServiceImpl extends ServiceImpl<MajorMapper, MajorDO> implements MajorService {
     @Autowired
     @Lazy
     private CourseService courseService;
@@ -25,20 +25,20 @@ public class MajorServiceImpl extends ServiceImpl<MajorMapper, Major> implements
     private CollegeService collegeService;
 
     @Override
-    public String getMaxMajorId(QueryWrapper<Major> wrapper) {
+    public String getMaxMajorId(QueryWrapper<MajorDO> wrapper) {
         return getBaseMapper().getMaxMajorId(wrapper);
     }
 
     @Override
-    public List<Major> getMajorLikeByName(String majorName) {
-        QueryWrapper<Major> wrapper = new QueryWrapper<>();
+    public List<MajorDO> getMajorLikeByName(String majorName) {
+        QueryWrapper<MajorDO> wrapper = new QueryWrapper<>();
         wrapper.like("major_name", majorName);
         return getBaseMapper().selectList(wrapper);
     }
 
     @Override
-    public List<Major> getMajorByCollegeId(String collegeId) {
-        QueryWrapper<Major> wrapper = new QueryWrapper<>();
+    public List<MajorDO> getMajorByCollegeId(String collegeId) {
+        QueryWrapper<MajorDO> wrapper = new QueryWrapper<>();
         wrapper.eq("college_id", collegeId);
         return getBaseMapper().selectList(wrapper);
     }
@@ -51,11 +51,11 @@ public class MajorServiceImpl extends ServiceImpl<MajorMapper, Major> implements
      * @return
      */
     @Override
-    public ResultData selectWithWrapper(long cur, long size, QueryWrapper<Major> wrapper) {
-        Page<Major> page = new Page<>(cur, size);
-        Page<Major> majorPage = getBaseMapper().selectPage(page, wrapper);
+    public ResultData selectWithWrapper(long cur, long size, QueryWrapper<MajorDO> wrapper) {
+        Page<MajorDO> page = new Page<>(cur, size);
+        Page<MajorDO> majorPage = getBaseMapper().selectPage(page, wrapper);
         ResultData resultData = new ResultData();
-        List<Major> records = majorPage.getRecords();
+        List<MajorDO> records = majorPage.getRecords();
         records.forEach(major ->
                 major.setCollegeId(collegeService.getById(major.getCollegeId()).getCollegeName()));
         resultData.setData(records);
@@ -71,7 +71,7 @@ public class MajorServiceImpl extends ServiceImpl<MajorMapper, Major> implements
      */
     @Override
     public void countAll() {
-        List<Major> list = getBaseMapper().selectList(new QueryWrapper<>());
+        List<MajorDO> list = getBaseMapper().selectList(new QueryWrapper<>());
         list.forEach(major -> major.setCourseNum(courseService.selectCountWithMajor(major.getMajorId())));
         saveOrUpdateBatch(list);
     }
@@ -83,8 +83,8 @@ public class MajorServiceImpl extends ServiceImpl<MajorMapper, Major> implements
      */
     @Override
     public void modifyCourseNum(String majorId, int num) {
-        Major major = getById(majorId);
-        major.setCourseNum(major.getCourseNum() + num);
-        saveOrUpdate(major);
+        MajorDO majorDO = getById(majorId);
+        majorDO.setCourseNum(majorDO.getCourseNum() + num);
+        saveOrUpdate(majorDO);
     }
 }

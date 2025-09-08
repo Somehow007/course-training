@@ -1,4 +1,4 @@
-package com.ujs.trainingprogram.tp.model;
+package com.ujs.trainingprogram.tp.dao.entity.model;
 
 import lombok.Data;
 

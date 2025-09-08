@@ -4,8 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ujs.trainingprogram.tp.common.result.ResultData;
-import com.ujs.trainingprogram.tp.mapper.CourseMapper;
-import com.ujs.trainingprogram.tp.model.Course;
+import com.ujs.trainingprogram.tp.dao.mapper.CourseMapper;
+import com.ujs.trainingprogram.tp.dao.entity.CourseDO;
 import com.ujs.trainingprogram.tp.service.CollegeService;
 import com.ujs.trainingprogram.tp.service.CourseService;
 import com.ujs.trainingprogram.tp.service.MajorService;
@@ -16,7 +16,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 @Service
-public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> implements CourseService {
+public class CourseServiceImpl extends ServiceImpl<CourseMapper, CourseDO> implements CourseService {
     @Autowired
     @Lazy
     private CollegeService collegeService;
@@ -25,8 +25,8 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
     private MajorService majorService;
 
     @Override
-    public List<Course> selectCourseByCodeAndYear(String code, String year) {
-        QueryWrapper<Course> wrapper = new QueryWrapper<>();
+    public List<CourseDO> selectCourseByCodeAndYear(String code, String year) {
+        QueryWrapper<CourseDO> wrapper = new QueryWrapper<>();
         wrapper.eq("code", code);
         wrapper.eq("year", year);
         return getBaseMapper().selectList(wrapper);
@@ -40,7 +40,7 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
      */
     @Override
     public Integer selectCountWithCollege(String collegeId) {
-        QueryWrapper<Course> wrapper = new QueryWrapper<>();
+        QueryWrapper<CourseDO> wrapper = new QueryWrapper<>();
         wrapper.eq("college_id", collegeId);
         return getBaseMapper().selectCount(wrapper).intValue();
     }
@@ -53,17 +53,17 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
      */
     @Override
     public Integer selectCountWithMajor(String majorId) {
-        QueryWrapper<Course> wrapper = new QueryWrapper<>();
+        QueryWrapper<CourseDO> wrapper = new QueryWrapper<>();
         wrapper.eq("major_id", majorId);
         return getBaseMapper().selectCount(wrapper).intValue();
     }
 
     @Override
-    public ResultData selectWithWrapper(long cur, long size, QueryWrapper<Course> wrapper) {
-        Page<Course> page = new Page<>(cur, size);
-        Page<Course> coursePage = getBaseMapper().selectPage(page, wrapper);
+    public ResultData selectWithWrapper(long cur, long size, QueryWrapper<CourseDO> wrapper) {
+        Page<CourseDO> page = new Page<>(cur, size);
+        Page<CourseDO> coursePage = getBaseMapper().selectPage(page, wrapper);
         ResultData resultData = new ResultData();
-        List<Course> records = coursePage.getRecords();
+        List<CourseDO> records = coursePage.getRecords();
         records.forEach(course -> {
             course.setCollegeId(collegeService.getById(course.getCollegeId()).getCollegeName());
             course.setMajorId(majorService.getById(course.getMajorId()).getMajorName());
@@ -87,7 +87,7 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
     }
 
     @Override
-    public List<Course> selectWithYear(String year) {
+    public List<CourseDO> selectWithYear(String year) {
         return List.of();
     }
 }

@@ -1,6 +1,5 @@
-package com.ujs.trainingprogram.tp.model;
+package com.ujs.trainingprogram.tp.dao.entity;
 
-import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
@@ -17,11 +16,27 @@ import java.util.List;
  */
 @Data
 @TableName("user")
-public class User implements UserDetails {
+public class UserDO implements UserDetails {
+
+    /**
+     * 用户Id
+     */
     @TableId("user_id")
     private String userId;
+
+    /**
+     * 用户密码
+     */
     private String userPassword;
+
+    /**
+     * 学院编号
+     */
     private String collegeId;
+
+    /**
+     * 用户状态
+     */
     private String userState;
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

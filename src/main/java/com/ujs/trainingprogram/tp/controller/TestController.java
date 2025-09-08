@@ -1,6 +1,6 @@
 package com.ujs.trainingprogram.tp.controller;
 
-import com.ujs.trainingprogram.tp.model.User;
+import com.ujs.trainingprogram.tp.dao.entity.UserDO;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 
@@ -23,9 +23,9 @@ public class TestController {
         );
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        if (authentication.getPrincipal() instanceof User) {
-            User user = (User) authentication.getPrincipal();
-            log.warn("TestController用户信息：{}", user);
+        if (authentication.getPrincipal() instanceof UserDO) {
+            UserDO userDO = (UserDO) authentication.getPrincipal();
+            log.warn("TestController用户信息：{}", userDO);
         } else {
             log.error("Principal类型异常: {}", authentication.getPrincipal().getClass());
         }
@@ -33,10 +33,10 @@ public class TestController {
 
         if (authentication != null && authentication.isAuthenticated()) {
             Object principal = authentication.getPrincipal();
-            if (principal instanceof User) {
-                User user = (User) principal;
-                System.out.println("当前用户名称：" + user.getUserId());
-                return "认证用户: " + user.getUserId();
+            if (principal instanceof UserDO) {
+                UserDO userDO = (UserDO) principal;
+                System.out.println("当前用户名称：" + userDO.getUserId());
+                return "认证用户: " + userDO.getUserId();
             }
             System.out.println("匿名用户：" + principal);
             return "匿名用户";

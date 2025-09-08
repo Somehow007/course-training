@@ -1,11 +1,12 @@
 package com.ujs.trainingprogram.tp.controller;
 
-import com.ujs.trainingprogram.tp.model.Course;
+import com.ujs.trainingprogram.tp.dao.entity.CourseDO;
 import com.ujs.trainingprogram.tp.service.CollegeService;
 import com.ujs.trainingprogram.tp.service.CourseService;
 import com.ujs.trainingprogram.tp.service.MajorService;
 import com.ujs.trainingprogram.tp.service.UserService;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -14,19 +15,21 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Excel业务处理控制层
+ */
 @RestController
 @RequestMapping("/excel")
+@RequiredArgsConstructor
 public class ExcelController {
-    @Autowired
-    private CollegeService collegeService;
 
-    @Autowired
-    private MajorService majorService;
+    private final CollegeService collegeService;
 
-    @Autowired
-    private CourseService courseService;
-    @Autowired
-    private UserService userService;
+    private final MajorService majorService;
+
+    private final CourseService courseService;
+
+    private final UserService userService;
 
     /**
      * 管理员通过Excel上传培养计划
@@ -71,8 +74,8 @@ public class ExcelController {
         userService.exportUserToExcel(response);
     }
 
-    private static List<Course> readCoursesForList(Workbook workbook) {
-        List<Course> list = new ArrayList<>();
+    private static List<CourseDO> readCoursesForList(Workbook workbook) {
+        List<CourseDO> list = new ArrayList<>();
         String target = "专业";
         final String sheetString = "课程设置及学时分配表(四年制)";// 工作簿名称
         final String[] colNames = {"课程类别", "课程性质", "开课学院", "课程名称", "总学分", "总学时", "授课"};

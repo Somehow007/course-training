@@ -5,9 +5,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ujs.trainingprogram.tp.common.result.ResultData;
 import com.ujs.trainingprogram.tp.controller.UserController;
-import com.ujs.trainingprogram.tp.mapper.UserMapper;
-import com.ujs.trainingprogram.tp.model.College;
-import com.ujs.trainingprogram.tp.model.User;
+import com.ujs.trainingprogram.tp.dao.entity.UserDO;
+import com.ujs.trainingprogram.tp.dao.mapper.UserMapper;
+import com.ujs.trainingprogram.tp.dao.entity.CollegeDO;
 import com.ujs.trainingprogram.tp.service.CollegeService;
 import com.ujs.trainingprogram.tp.service.UserService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 
 @Service
 @Slf4j
-public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService, UserDetailsService {
+public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements UserService, UserDetailsService {
     @Autowired
     private CollegeService collegeService;
     private final JdbcTemplate jdbcTemplate;
@@ -48,18 +48,18 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     @Override
-    public ResultData selectWithWrapper(long cur, long size, QueryWrapper<User> wrapper) {
-        Page<User> page = new Page<>(cur, size);
-        Page<User> userPage = getBaseMapper().selectPage(page, wrapper);
+    public ResultData selectWithWrapper(long cur, long size, QueryWrapper<UserDO> wrapper) {
+        Page<UserDO> page = new Page<>(cur, size);
+        Page<UserDO> userPage = getBaseMapper().selectPage(page, wrapper);
         ResultData resultData = new ResultData();
-        List<User> records = userPage.getRecords();
+        List<UserDO> records = userPage.getRecords();
         List<UserController.UserReturn> users = new ArrayList<>();
-        for (User user : records) {
-            System.out.println(user.getUserId());
+        for (UserDO userDO : records) {
+            System.out.println(userDO.getUserId());
             UserController.UserReturn userReturn = new UserController.UserReturn();
-            userReturn.collegeName = collegeService.getById(user.getCollegeId()).getCollegeName();
-            userReturn.userId = user.getUserId();
-            userReturn.userState = user.getUserState();
+            userReturn.collegeName = collegeService.getById(userDO.getCollegeId()).getCollegeName();
+            userReturn.userId = userDO.getUserId();
+            userReturn.userState = userDO.getUserState();
             System.out.println(userReturn.collegeName + " " + userReturn.userId);
             users.add(userReturn);
         }
@@ -73,12 +73,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         log.warn("正在查询用户:{}", username);
-        User user = getById(username);
-        if (user == null) {
+        UserDO userDO = getById(username);
+        if (userDO == null) {
             throw new UsernameNotFoundException("用户不存在");
         }
-        log.warn("用户信息：{}", user);
-        return user;
+        log.warn("用户信息：{}", userDO);
+        return userDO;
     }
 
 
@@ -87,8 +87,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         collegeMap = collegeService.getCollegeNameAndId()
                 .stream()
                 .collect(Collectors.toMap(
-                        College::getCollegeId,
-                        College::getCollegeName
+                        CollegeDO::getCollegeId,
+                        CollegeDO::getCollegeName
                 ));
 
     }

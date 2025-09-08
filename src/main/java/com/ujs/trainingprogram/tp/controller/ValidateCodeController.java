@@ -1,13 +1,12 @@
 package com.ujs.trainingprogram.tp.controller;
 
-import com.ujs.trainingprogram.tp.model.ImageCode;
+import com.ujs.trainingprogram.tp.dao.entity.model.ImageCode;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.context.request.ServletWebRequest;
 
 import javax.imageio.ImageIO;
 import java.awt.*;

@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ujs.trainingprogram.tp.common.exception.ValidateCodeException;
 import com.ujs.trainingprogram.tp.common.handler.MyAuthenticationFailuerHandler;
 import com.ujs.trainingprogram.tp.controller.ValidateCodeController;
-import com.ujs.trainingprogram.tp.model.ImageCode;
+import com.ujs.trainingprogram.tp.dao.entity.model.ImageCode;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,8 +14,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
 import org.springframework.http.MediaType;
-import org.springframework.security.authentication.AuthenticationServiceException;
-import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.util.ContentCachingRequestWrapper;
 

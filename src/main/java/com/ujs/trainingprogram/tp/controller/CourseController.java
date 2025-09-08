@@ -3,14 +3,15 @@ package com.ujs.trainingprogram.tp.controller;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.ujs.trainingprogram.tp.common.result.ResultData;
 import com.ujs.trainingprogram.tp.common.result.ResultMessage;
-import com.ujs.trainingprogram.tp.model.College;
-import com.ujs.trainingprogram.tp.model.Course;
-import com.ujs.trainingprogram.tp.model.Major;
-import com.ujs.trainingprogram.tp.model.enums.CourseCategoryEnum;
-import com.ujs.trainingprogram.tp.model.enums.CourseTypeEnum;
+import com.ujs.trainingprogram.tp.dao.entity.CollegeDO;
+import com.ujs.trainingprogram.tp.dao.entity.CourseDO;
+import com.ujs.trainingprogram.tp.dao.entity.MajorDO;
+import com.ujs.trainingprogram.tp.dao.entity.enums.CourseCategoryEnum;
+import com.ujs.trainingprogram.tp.dao.entity.enums.CourseTypeEnum;
 import com.ujs.trainingprogram.tp.service.CollegeService;
 import com.ujs.trainingprogram.tp.service.CourseService;
 import com.ujs.trainingprogram.tp.service.MajorService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,18 +21,21 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@RestController
-@RequestMapping("/course")
+/**
+ * 课程业务控制层
+ */
 @Slf4j
+@RestController
+@RequiredArgsConstructor
 public class CourseController {
-    @Autowired
-    private CourseService courseService;
-    @Autowired
-    private MajorService majorService;
-    @Autowired
-    private CollegeService collegeService;
 
-    @GetMapping("/")
+    private final CourseService courseService;
+
+    private final MajorService majorService;
+
+    private final CollegeService collegeService;
+
+    @GetMapping("/course/")
     public ResultData getAllCourse(@RequestParam(value = "page", defaultValue = "0") Integer page,
                                    @RequestParam(value = "size", defaultValue = "10") Integer size,
                                    @RequestParam(value = "course_id", defaultValue = "-1") Integer courseId,
@@ -43,7 +47,7 @@ public class CourseController {
                                    @RequestParam(value = "major_name", defaultValue = "") String majorName,
                                    @RequestParam(value = "year", defaultValue = "") Integer year) {
         log.info("请求参数：page={}, size={}, course_id={}, courseCode={}, courseName={}, course_type={}, course_category={}, major_id={}, college_id={}, year={}", page, size, courseId, courseCode, courseName, courseType, courseCategory, majorName, collegeName, year);
-        QueryWrapper<Course> wrapper = new QueryWrapper<>();
+        QueryWrapper<CourseDO> wrapper = new QueryWrapper<>();
         if (courseId != -1) {
             wrapper.eq("course_id", courseId);
         } else {
@@ -52,16 +56,16 @@ public class CourseController {
             wrapper.eq(courseType != -1, "course_type", courseType);
             wrapper.eq(courseCategory != -1, "course_category", courseCategory);
             if (!StringUtils.isEmpty(majorName)) {
-                List<Major> majors = majorService.getMajorLikeByName(majorName);
-                if (!CollectionUtils.isEmpty(majors)) {
-                    wrapper.in("major_id", majors.stream().map(Major::getMajorId).collect(Collectors.toList()));
+                List<MajorDO> majorDOS = majorService.getMajorLikeByName(majorName);
+                if (!CollectionUtils.isEmpty(majorDOS)) {
+                    wrapper.in("major_id", majorDOS.stream().map(MajorDO::getMajorId).collect(Collectors.toList()));
                 }
             }
             if (!StringUtils.isEmpty(collegeName)) {
-                List<College> colleges = collegeService.getCollegeLikeByName(collegeName);
-                if (!CollectionUtils.isEmpty(colleges)) {
+                List<CollegeDO> collegeDOS = collegeService.getCollegeLikeByName(collegeName);
+                if (!CollectionUtils.isEmpty(collegeDOS)) {
                     wrapper.in("college_id",
-                            colleges.stream().map(College::getCollegeId).collect(Collectors.toList()));
+                            collegeDOS.stream().map(CollegeDO::getCollegeId).collect(Collectors.toList()));
                 }
             }
         }
@@ -73,7 +77,7 @@ public class CourseController {
      * 系统管理员可添加任意学院的课程
      * @return
      */
-    @PostMapping("/mainAdmin/add")
+    @PostMapping("/course/mainAdmin/add")
     public ResultMessage addCourse(
             @RequestParam(value = "course_code", defaultValue = "") String courseCode,
             @RequestParam(value = "course_type", defaultValue = "-1") Integer courseType,
@@ -92,30 +96,30 @@ public class CourseController {
             @RequestParam(value = "required_elective", defaultValue = "0") byte requiredElective,
             @RequestParam(value = "term", defaultValue = "-1") Integer term) {
         if (StringUtils.isAnyEmpty(courseCode, courseName, majorName)) return ResultMessage.PARAM_MISS;
-        Course course = new Course();
-        List<College> colleges = collegeService.getCollegeLikeByName(collegeName);
-        List<Major> majors = majorService.getMajorLikeByName(majorName);
-        if (colleges.size() == 0 || majors.size() == 0) return ResultMessage.PARAM_MISS;
-        course.setCollegeId(colleges.get(0).getCollegeId());
-        course.setMajorId(majors.get(0).getMajorId());
+        CourseDO courseDO = new CourseDO();
+        List<CollegeDO> collegeDOS = collegeService.getCollegeLikeByName(collegeName);
+        List<MajorDO> majorDOS = majorService.getMajorLikeByName(majorName);
+        if (collegeDOS.size() == 0 || majorDOS.size() == 0) return ResultMessage.PARAM_MISS;
+        courseDO.setCollegeId(collegeDOS.get(0).getCollegeId());
+        courseDO.setMajorId(majorDOS.get(0).getMajorId());
 
-        course.setCourseCode(courseCode);
-        course.setCourseName(courseName);
-        course.setTotalCredits(totalCredits < 0 ? null : totalCredits);
-        course.setHourWeek(hourWeek < 0 ? null : hourWeek);
-        course.setHourTeach(hourTeach < 0 ? null : hourTeach);
-        course.setHourPractice(hourPractice < 0 ? null : hourPractice);
-        course.setHourOperation(hourOption < 0 ? null : hourOption);
-        course.setHourOutside(hourOutside < 0 ? null : hourOutside);
-        course.setCourseType(CourseTypeEnum.getInstance(courseType));
-        course.setCourseCategory(CourseCategoryEnum.getInstance(courseCategory));
-        course.setTerm(term);
-        boolean flag=courseService.save(course);
+        courseDO.setCourseCode(courseCode);
+        courseDO.setCourseName(courseName);
+        courseDO.setTotalCredits(totalCredits < 0 ? null : totalCredits);
+        courseDO.setHourWeek(hourWeek < 0 ? null : hourWeek);
+        courseDO.setHourTeach(hourTeach < 0 ? null : hourTeach);
+        courseDO.setHourPractice(hourPractice < 0 ? null : hourPractice);
+        courseDO.setHourOperation(hourOption < 0 ? null : hourOption);
+        courseDO.setHourOutside(hourOutside < 0 ? null : hourOutside);
+        courseDO.setCourseType(CourseTypeEnum.getInstance(courseType));
+        courseDO.setCourseCategory(CourseCategoryEnum.getInstance(courseCategory));
+        courseDO.setTerm(term);
+        boolean flag=courseService.save(courseDO);
         if (!flag) {
             return ResultMessage.UPDATE_ERROR;
         }
-        collegeService.modifyCourseNum(colleges.get(0).getCollegeId(),1);
-        majorService.modifyCourseNum(majors.get(0).getMajorId(),1);
+        collegeService.modifyCourseNum(collegeDOS.get(0).getCollegeId(),1);
+        majorService.modifyCourseNum(majorDOS.get(0).getMajorId(),1);
 
         return ResultMessage.UPDATE_SUCCESS;
     }
@@ -123,7 +127,7 @@ public class CourseController {
     /**
      * 修改课程信息
      */
-    @PutMapping("/mainAdmin/update")
+    @PutMapping("/course/mainAdmin/update")
     public ResultMessage updateCourse(
             @RequestParam(value = "course_id", defaultValue = "-1") Integer courseId,
             @RequestParam(value = "course_code", defaultValue = "") String courseCode,
@@ -146,53 +150,53 @@ public class CourseController {
         if (courseId.equals(-1)) {
             return ResultMessage.PARAM_MISS;
         }
-        Course course = courseService.getById(courseId);
-        if (course == null) {
+        CourseDO courseDO = courseService.getById(courseId);
+        if (courseDO == null) {
             return ResultMessage.PARAM_MISS;
         }
 
-        course.setCourseCode(courseCode);
-        course.setCourseName(courseName);
-        course.setTotalCredits(totalCredits < 0 ? null : totalCredits);
-        course.setHourWeek(hourWeek < 0 ? null : hourWeek);
-        course.setHourTeach(hourTeach < 0 ? null : hourTeach);
-        course.setHourPractice(hourPractice < 0 ? null : hourPractice);
-        course.setHourOperation(hourOption < 0 ? null : hourOption);
-        course.setHourOutside(hourOutside < 0 ? null : hourOutside);
-        course.setCourseType(CourseTypeEnum.getInstance(courseType));
-        course.setCourseCategory(CourseCategoryEnum.getInstance(courseCategory));
-        course.setTerm(term);
-        course.setRequiredElective(requiredElective < 0 ? null : requiredElective);
-        course.setTotalWeeks(totalWeeks < 0 ? null : totalWeeks + "周");
+        courseDO.setCourseCode(courseCode);
+        courseDO.setCourseName(courseName);
+        courseDO.setTotalCredits(totalCredits < 0 ? null : totalCredits);
+        courseDO.setHourWeek(hourWeek < 0 ? null : hourWeek);
+        courseDO.setHourTeach(hourTeach < 0 ? null : hourTeach);
+        courseDO.setHourPractice(hourPractice < 0 ? null : hourPractice);
+        courseDO.setHourOperation(hourOption < 0 ? null : hourOption);
+        courseDO.setHourOutside(hourOutside < 0 ? null : hourOutside);
+        courseDO.setCourseType(CourseTypeEnum.getInstance(courseType));
+        courseDO.setCourseCategory(CourseCategoryEnum.getInstance(courseCategory));
+        courseDO.setTerm(term);
+        courseDO.setRequiredElective(requiredElective < 0 ? null : requiredElective);
+        courseDO.setTotalWeeks(totalWeeks < 0 ? null : totalWeeks + "周");
         String collegeId = collegeService.getCollegeLikeByName(collegeName).get(0).getCollegeId();
         String majorId = majorService.getMajorLikeByName(majorName).get(0).getMajorId();
-        course.setCollegeId(collegeId);
-        course.setMajorId(majorId);
-        course.setTotalHours(totalHours < 0 ? null : totalHours);
-        return courseService.saveOrUpdate(course) ? ResultMessage.UPDATE_SUCCESS : ResultMessage.UPDATE_ERROR;
+        courseDO.setCollegeId(collegeId);
+        courseDO.setMajorId(majorId);
+        courseDO.setTotalHours(totalHours < 0 ? null : totalHours);
+        return courseService.saveOrUpdate(courseDO) ? ResultMessage.UPDATE_SUCCESS : ResultMessage.UPDATE_ERROR;
     }
 
     /**
      * 删除课程
      */
     private boolean delete(Integer courseId) {
-        Course course = courseService.getById(courseId);
-        if(course==null)
+        CourseDO courseDO = courseService.getById(courseId);
+        if(courseDO ==null)
             return false;
         //修改开课学院与授课专业需求量
-        College college = collegeService.getById(course.getCollegeId());
-        Major major = majorService.getById(course.getMajorId());
-        college.setCourseNum(college.getCourseNum() - 1);
-        major.setCourseNum(major.getCourseNum() - 1);
-        collegeService.saveOrUpdate(college);
-        majorService.saveOrUpdate(major);
+        CollegeDO collegeDO = collegeService.getById(courseDO.getCollegeId());
+        MajorDO majorDO = majorService.getById(courseDO.getMajorId());
+        collegeDO.setCourseNum(collegeDO.getCourseNum() - 1);
+        majorDO.setCourseNum(majorDO.getCourseNum() - 1);
+        collegeService.saveOrUpdate(collegeDO);
+        majorService.saveOrUpdate(majorDO);
         return courseService.removeById(courseId);
     }
 
     /**
      * 删除单个课程
      */
-    @DeleteMapping("/mainAdmin/delete")
+    @DeleteMapping("/course/mainAdmin/delete")
     public ResultMessage deleteCourse(@RequestParam(value = "course_id") Integer courseId) {
         if (courseId == null) {
             return ResultMessage.PARAM_MISS;
@@ -203,7 +207,7 @@ public class CourseController {
     /**
      * 批量删除课程
      */
-    @DeleteMapping("/mainAdmin/deleteAll")
+    @DeleteMapping("/course/mainAdmin/deleteAll")
     public ResultMessage deleteAllCourse(@RequestParam(value = "course_ids",defaultValue = "") String courseIds) {
         int num=0;
         //获取参数
