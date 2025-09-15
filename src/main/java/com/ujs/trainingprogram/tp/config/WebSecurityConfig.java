@@ -1,14 +1,21 @@
 package com.ujs.trainingprogram.tp.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ujs.trainingprogram.tp.common.filter.MyAuthenticationFilter;
 import com.ujs.trainingprogram.tp.common.filter.ValidateCodeFilter;
 import com.ujs.trainingprogram.tp.common.handler.MyAuthenticationFailuerHandler;
 import com.ujs.trainingprogram.tp.common.handler.MyAuthenticationSuccessHandler;
+import com.ujs.trainingprogram.tp.common.result.Result;
+import com.ujs.trainingprogram.tp.common.web.Results;
 import com.ujs.trainingprogram.tp.service.impl.UserServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -17,15 +24,19 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.io.PrintWriter;
+
 @Configuration
 @EnableWebSecurity
 public class WebSecurityConfig {
     @Autowired
+    @Lazy
     private UserServiceImpl userService;
     @Autowired
     private MyAuthenticationSuccessHandler successHandler;
@@ -40,6 +51,8 @@ public class WebSecurityConfig {
 //        provider.setUserDetailsService(userService);
 //        auth.authenticationProvider(provider);
 //    }
+
+    // todo: 鉴权部分仍需处理，有很大bug，目前开发取消鉴权
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         // 1. 初始化过滤器
@@ -57,6 +70,9 @@ public class WebSecurityConfig {
                         .requestMatchers("/", "/test", "/code/image").permitAll()
                         .requestMatchers("/excel/users").permitAll()
                         .requestMatchers("/user/**").hasAuthority("user")
+                        .requestMatchers("/doc.html", "/webjars/**", "/swagger-resources/**", "/v3/api-docs/**").permitAll()
+                        .requestMatchers("/college/**").permitAll()
+                        .requestMatchers("/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session

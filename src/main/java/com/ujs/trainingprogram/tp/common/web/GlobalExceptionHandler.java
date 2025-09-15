@@ -9,6 +9,9 @@ import io.micrometer.common.util.StringUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.InsufficientAuthenticationException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -56,6 +59,36 @@ public class GlobalExceptionHandler {
         }
         log.error("[{}] {} [ex] {} \n\n{}", request.getMethod(), request.getRequestURL().toString(), ex, stackTraceBuilder);
         return Results.failure(ex);
+    }
+
+    /**
+     * 拦截Spring Security认证不足异常
+     */
+    @ExceptionHandler(value = InsufficientAuthenticationException.class)
+    public Result<Void> handleInsufficientAuthenticationException(HttpServletRequest request, InsufficientAuthenticationException ex) {
+        log.warn("[{}] {} [ex] 认证不充分: {}", request.getMethod(), getUrl(request), ex.getMessage());
+        return Results.failure(BaseErrorCode.AUTHENTICATION_ERROR.code(), "需要完整身份验证，请先登录");
+    }
+
+
+
+    /**
+     * 拦截Spring Security访问被拒绝异常
+     */
+    @ExceptionHandler(value = AccessDeniedException.class)
+    public Result handleAccessDeniedException(HttpServletRequest request, AccessDeniedException ex) {
+        log.warn("[{}] {} [ex] 访问被拒绝: {}", request.getMethod(), getUrl(request), ex.getMessage());
+        return Results.failure(BaseErrorCode.ACCESS_DENIED_ERROR.code(), BaseErrorCode.ACCESS_DENIED_ERROR.message());
+    }
+
+
+    /**
+     * 拦截Spring Security认证异常
+     */
+    @ExceptionHandler(value = AuthenticationException.class)
+    public Result handleAuthenticationException(HttpServletRequest request, AuthenticationException ex) {
+        log.warn("[{}] {} [ex] 身份验证失败: {}", request.getMethod(), getUrl(request), ex.getMessage());
+        return Results.failure(BaseErrorCode.AUTHENTICATION_ERROR.code(), "身份验证失败，请先登录");
     }
 
     /**
