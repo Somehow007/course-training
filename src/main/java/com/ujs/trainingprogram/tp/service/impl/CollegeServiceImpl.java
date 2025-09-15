@@ -8,23 +8,28 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ujs.trainingprogram.tp.common.exception.ClientException;
+import com.ujs.trainingprogram.tp.common.exception.ServiceException;
 import com.ujs.trainingprogram.tp.dao.mapper.CollegeMapper;
 import com.ujs.trainingprogram.tp.dao.entity.CollegeDO;
 import com.ujs.trainingprogram.tp.dto.req.college.CollegePageReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.college.CollegeSaveReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.college.CollegeUpdateReqDTO;
-import com.ujs.trainingprogram.tp.dto.resp.CollegePageRespDTO;
+import com.ujs.trainingprogram.tp.dto.resp.college.CollegePageRespDTO;
 import com.ujs.trainingprogram.tp.service.CollegeService;
 import com.ujs.trainingprogram.tp.service.CourseService;
 import com.ujs.trainingprogram.tp.service.MajorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RLock;
+import org.redisson.api.RReadWriteLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Objects;
+
+import static com.ujs.trainingprogram.tp.common.constant.RedisKeyConstant.LOCK_COLLEGE_NAME_KEY;
 
 /**
  * 学院业务逻辑实现层
@@ -36,16 +41,6 @@ public class CollegeServiceImpl extends ServiceImpl<CollegeMapper, CollegeDO> im
 
     private final RedissonClient redissonClient;
 
-    private CollegeMapper collegeMapper;
-
-//    @Autowired
-//    @Lazy
-    private MajorService majorService;
-
-//    @Autowired
-//    @Lazy
-    private CourseService courseService;
-
     @Override
     public String getMaxCollegeId() {
         return getBaseMapper().getMaxCollegeId();
@@ -54,7 +49,7 @@ public class CollegeServiceImpl extends ServiceImpl<CollegeMapper, CollegeDO> im
     @Override
     public void createCollege(CollegeSaveReqDTO requestParam) {
         CollegeDO collegeDO = BeanUtil.toBean(requestParam, CollegeDO.class);
-        collegeMapper.insert(collegeDO);
+        baseMapper.insert(collegeDO);
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -79,7 +74,35 @@ public class CollegeServiceImpl extends ServiceImpl<CollegeMapper, CollegeDO> im
                     .build();
             baseMapper.update(collegeDO, updateWrapper);
         } else {
-            redissonClient.getReadWriteLock(String.format())
+            // 此操作为修改学院id，出现此操作的概率相对极小，但不排除有这种可能，也因此此处不能用学院id作为锁key
+            // 使用学院名称作为锁key，因为学院名称相对比较稳定
+            RReadWriteLock readWriteLock = redissonClient.getReadWriteLock(String.format(LOCK_COLLEGE_NAME_KEY, requestParam.getCollegeName()));
+            RLock rLock = readWriteLock.writeLock();
+            if (!rLock.tryLock()) {
+                throw new ServiceException("学院信息正在被修改，请稍后再试...");
+            }
+            try {
+                LambdaUpdateWrapper<CollegeDO> updateWrapper = Wrappers.lambdaUpdate(CollegeDO.class)
+                        .eq(CollegeDO::getCollegeId, hasCollegeDO.getCollegeId())
+                        .eq(CollegeDO::getCollegeName, hasCollegeDO.getCollegeName())
+                        .eq(CollegeDO::getDelFlag, 0);
+
+                CollegeDO delCollegeDO = CollegeDO.builder().build();
+                delCollegeDO.setDelFlag(1);
+                baseMapper.update(delCollegeDO, updateWrapper);
+
+                CollegeDO collegeDO = CollegeDO.builder()
+                        .collegeId(requestParam.getNewCollegeId())
+                        .collegeName(requestParam.getCollegeName())
+                        .courseNum(requestParam.getCourseNum())
+                        .build();
+                baseMapper.insert(collegeDO);
+
+                // todo: 修改其他关联学院id的字段、库表
+
+            } finally {
+                rLock.unlock();
+            }
         }
     }
 
@@ -92,13 +115,13 @@ public class CollegeServiceImpl extends ServiceImpl<CollegeMapper, CollegeDO> im
     }
 
 
-    @Override
-    public void countAll() {
-        List<CollegeDO> list = getBaseMapper().selectList(new QueryWrapper<>());
-        list.forEach(college ->
-                college.setCourseNum(courseService.selectCountWithCollege(college.getCollegeId())));
-        saveOrUpdateBatch(list);
-    }
+//    @Override
+//    public void countCollegeCourseNums() {
+//        List<CollegeDO> list = getBaseMapper().selectList(new QueryWrapper<>());
+//        list.forEach(college ->
+//                college.setCourseNum(courseService.selectCountWithCollege(college.getCollegeId())));
+//        saveOrUpdateBatch(list);
+//    }
 
     @Override
     public IPage<CollegePageRespDTO> pageCollege(CollegePageReqDTO requestParam) {
@@ -135,19 +158,6 @@ public class CollegeServiceImpl extends ServiceImpl<CollegeMapper, CollegeDO> im
 //        return resultData;
 //    }
 
-    /**
-     * 修改学院课程数量
-     * @param collegeId
-     * @param num
-     */
-    @Override
-    public void modifyCourseNum(String collegeId, int num) {
-        CollegeDO collegeDO = getById(collegeId);
-        collegeDO.setCourseNum(collegeDO.getCourseNum() + num);
-        saveOrUpdate(collegeDO);
-    }
-
-
     @Override
     public List<CollegeDO> getCollegeNameAndId() {
         QueryWrapper<CollegeDO> wrapper = new QueryWrapper<>();
@@ -160,6 +170,16 @@ public class CollegeServiceImpl extends ServiceImpl<CollegeMapper, CollegeDO> im
         QueryWrapper<CollegeDO> wrapper = new QueryWrapper<>();
         wrapper.eq("college_name", collegeName);
         return getBaseMapper().selectOne(wrapper);
+    }
+
+    @Override
+    public void deleteCollege(String collegeId) {
+        LambdaUpdateWrapper<CollegeDO> updateWrapper = Wrappers.lambdaUpdate(CollegeDO.class)
+                .eq(CollegeDO::getCollegeId, collegeId)
+                .eq(CollegeDO::getDelFlag, 0);
+        CollegeDO collegeDO = new CollegeDO();
+        collegeDO.setDelFlag(1);
+        baseMapper.update(collegeDO, updateWrapper);
     }
 
 //    @Override

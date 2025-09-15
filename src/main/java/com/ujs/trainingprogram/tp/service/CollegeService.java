@@ -6,10 +6,13 @@ import com.ujs.trainingprogram.tp.dao.entity.CollegeDO;
 import com.ujs.trainingprogram.tp.dto.req.college.CollegePageReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.college.CollegeSaveReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.college.CollegeUpdateReqDTO;
-import com.ujs.trainingprogram.tp.dto.resp.CollegePageRespDTO;
+import com.ujs.trainingprogram.tp.dto.resp.college.CollegePageRespDTO;
 
 import java.util.List;
 
+/**
+ * 学院接口层
+ */
 public interface CollegeService extends IService<CollegeDO> {
     String getMaxCollegeId();
 
@@ -35,10 +38,10 @@ public interface CollegeService extends IService<CollegeDO> {
      */
     List<CollegeDO> getCollegeLikeByName(String collegeName);
 
-    /**
-     * 获取学院的总课程数
-     */
-    void countAll();
+//    /**
+//     * 获取学院的总课程数
+//     */
+//    void countCollegeCourseNums();
 
     /**
      * 学院分页查询
@@ -48,11 +51,16 @@ public interface CollegeService extends IService<CollegeDO> {
      */
     IPage<CollegePageRespDTO> pageCollege(CollegePageReqDTO requestParam);
 
-    void modifyCourseNum(String collegeId, int num);
-
     List<CollegeDO> getCollegeNameAndId();
 
     CollegeDO getCollegeByName(String collegeName);
+
+    /**
+     * 删除学院
+     *
+     * @param collegeId 学院id
+     */
+    void deleteCollege(String collegeId);
 
 //    List<College> getCollegeNameAndCourseNum();
 }

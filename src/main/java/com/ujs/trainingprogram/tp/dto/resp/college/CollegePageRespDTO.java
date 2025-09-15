@@ -1,4 +1,4 @@
-package com.ujs.trainingprogram.tp.dto.resp;
+package com.ujs.trainingprogram.tp.dto.resp.college;
 
 import com.ujs.trainingprogram.tp.dao.entity.MajorDO;
 import lombok.Data;
@@ -24,7 +24,7 @@ public class CollegePageRespDTO {
     /**
      * 学院中的专业
      */
-    private List<MajorDO> majorDOS;
+    private List<MajorDO> majors;
 
     /**
      * 总课程数

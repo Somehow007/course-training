@@ -1,4 +1,4 @@
-package com.ujs.trainingprogram.tp.dto.resp;
+package com.ujs.trainingprogram.tp.dto.resp.college;
 
 import lombok.Data;
 
