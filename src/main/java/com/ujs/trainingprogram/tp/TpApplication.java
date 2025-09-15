@@ -5,7 +5,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-@MapperScan("com.ujs.trainingprogram.tp.mapper")
+@MapperScan("com.ujs.trainingprogram.tp.dao.mapper")
 public class TpApplication {
 
 	public static void main(String[] args) {
