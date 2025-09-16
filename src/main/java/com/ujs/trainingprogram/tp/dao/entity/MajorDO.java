@@ -2,6 +2,7 @@ package com.ujs.trainingprogram.tp.dao.entity;
 
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.ujs.trainingprogram.tp.common.database.BaseDO;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -15,18 +16,23 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @TableName("major")
-public class MajorDO {
+public class MajorDO extends BaseDO {
+
+    /**
+     * 主键
+     */
+    @TableId("id")
+    private Long id;
 
     /**
      * 专业编号
      */
-    @TableId("major_id")
-    private String majorId;
+    private String majorCode;
 
     /**
      * 学院编号，实际页面中需转化成学院名称
      */
-    private String collegeId;
+    private Long collegeId;
 
     /**
      * 专业名
