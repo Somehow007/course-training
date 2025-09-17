@@ -13,10 +13,10 @@ import lombok.Data;
 public class CollegePageReqDTO extends Page {
 
     /**
-     * ID 学院编号
+     * 学院编号
      */
-    @Schema(description = "ID 学院编号", example = "todo，学院编号样式")
-    private String collegeId;
+    @Schema(description = "学院编号", example = "todo，学院编号样式")
+    private String collegeCode;
 
     /**
      * 学院名称
