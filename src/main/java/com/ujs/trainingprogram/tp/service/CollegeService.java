@@ -53,14 +53,20 @@ public interface CollegeService extends IService<CollegeDO> {
 
     List<CollegeDO> getCollegeNameAndId();
 
+    /**
+     * 根据学院名称查询学院信息
+     *
+     * @param collegeName 查询学院信息请求参数
+     * @return 返回实体
+     */
     CollegeDO getCollegeByName(String collegeName);
 
     /**
      * 删除学院
      *
-     * @param collegeId 学院id
+     * @param collegeCode 学院编号
      */
-    void deleteCollege(String collegeId);
+    void deleteCollege(String collegeCode);
 
 //    List<College> getCollegeNameAndCourseNum();
 }

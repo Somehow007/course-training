@@ -19,10 +19,15 @@ import lombok.NoArgsConstructor;
 public class CollegeDO extends BaseDO {
 
     /**
-     * ID 学院编号
+     * 主键
      */
-    @TableId(value = "college_id")
-    private String collegeId;
+    @TableId(value = "id")
+    private Long id;
+
+    /**
+     * 学院编号
+     */
+    private String collegeCode;
 
     /**
      * 学院名称

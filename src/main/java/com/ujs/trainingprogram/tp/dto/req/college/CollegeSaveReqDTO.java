@@ -11,10 +11,10 @@ import lombok.Data;
 public class CollegeSaveReqDTO {
 
     /**
-     * ID 学院编号
+     * 学院编号
      */
-    @Schema(description = "ID 学院编号", example = "01", requiredMode = Schema.RequiredMode.REQUIRED)
-    private String collegeId;
+    @Schema(description = "学院编号", example = "01", requiredMode = Schema.RequiredMode.REQUIRED)
+    private String collegeCode;
 
     /**
      * 学院名称
