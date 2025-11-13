@@ -24,8 +24,8 @@ public class MajorPageReqDTO extends Page {
     private String majorName;
 
     /**
-     * 专业类别 0-工学 1-理学 2-文科
+     * 专业分类（0:工学 1:理学 2:文科）
      */
-    @Schema(description = "专业编号", example = "0001")
-    private Integer majorType;
+    @Schema(description = "专业分类（0:工学 1:理学 2:文科）", example = "0")
+    private Integer categoryId;
 }

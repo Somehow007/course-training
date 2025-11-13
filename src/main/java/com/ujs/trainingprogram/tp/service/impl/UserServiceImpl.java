@@ -57,7 +57,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
         for (UserDO userDO : records) {
             System.out.println(userDO.getUserId());
             UserController.UserReturn userReturn = new UserController.UserReturn();
-            userReturn.collegeName = collegeService.getById(userDO.getCollegeId()).getCollegeName();
+            userReturn.collegeName = collegeService.getById(userDO.getCollegeCode()).getCollegeName();
             userReturn.userId = userDO.getUserId();
             userReturn.userState = userDO.getUserState();
             System.out.println(userReturn.collegeName + " " + userReturn.userId);
@@ -87,7 +87,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
         collegeMap = collegeService.getCollegeNameAndId()
                 .stream()
                 .collect(Collectors.toMap(
-                        CollegeDO::getCollegeId,
+                        CollegeDO::getCollegeCode,
                         CollegeDO::getCollegeName
                 ));
 

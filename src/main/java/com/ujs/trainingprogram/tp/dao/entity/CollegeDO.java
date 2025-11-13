@@ -25,7 +25,7 @@ public class CollegeDO extends BaseDO {
     private Long id;
 
     /**
-     * 学院编号
+     * 学院编号，创建时即不可更改
      */
     private String collegeCode;
 
@@ -34,8 +34,4 @@ public class CollegeDO extends BaseDO {
      */
     private String collegeName;
 
-    /**
-     * 总课程数
-     */
-    private Integer courseNum;
 }

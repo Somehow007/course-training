@@ -9,22 +9,13 @@ import lombok.Data;
 public class CollegeUpdateReqDTO {
 
     /**
-     * 原学院编号
+     * 学院编号
      */
-    private String originCollegeCode;
-
-    /**
-     * 新学院编号
-     */
-    private String newCollegeCode;
+    private String collegeCode;
 
     /**
      * 学院名称
      */
     private String collegeName;
 
-    /**
-     * 总课程数
-     */
-    private Integer courseNum;
 }

@@ -1,5 +1,6 @@
 package com.ujs.trainingprogram.tp.dto;
 
+import com.baomidou.mybatisplus.annotation.TableId;
 import lombok.Data;
 
 /**
@@ -7,6 +8,11 @@ import lombok.Data;
  */
 @Data
 public class CollegePageMajorDTO {
+
+    /**
+     * 学院主键
+     */
+    private Long id;
 
     /**
      * 学院编号
@@ -34,7 +40,7 @@ public class CollegePageMajorDTO {
     private Integer courseNum;
 
     /**
-     * 专业类别 0-工学 1-理学 2-文科
+     * 专业分类（0:工学 1:理学 2:文科）
      */
-    private Integer majorType;
+    private Integer categoryId;
 }

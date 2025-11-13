@@ -64,9 +64,9 @@ public interface CollegeService extends IService<CollegeDO> {
     /**
      * 删除学院
      *
-     * @param collegeCode 学院编号
+     * @param id 学院主键
      */
-    void deleteCollege(String collegeCode);
+    void deleteCollege(Long id);
 
 //    List<College> getCollegeNameAndCourseNum();
 }

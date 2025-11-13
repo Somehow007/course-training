@@ -10,6 +10,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.ujs.trainingprogram.tp.common.exception.ClientException;
 import com.ujs.trainingprogram.tp.common.exception.ServiceException;
 import com.ujs.trainingprogram.tp.dao.entity.CollegeDO;
 import com.ujs.trainingprogram.tp.dao.mapper.CollegeMapper;
@@ -17,6 +18,7 @@ import com.ujs.trainingprogram.tp.dao.mapper.MajorMapper;
 import com.ujs.trainingprogram.tp.dao.entity.MajorDO;
 import com.ujs.trainingprogram.tp.dto.req.major.MajorPageReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.major.MajorSaveReqDTO;
+import com.ujs.trainingprogram.tp.dto.req.major.MajorUpdateReqDTO;
 import com.ujs.trainingprogram.tp.dto.resp.major.MajorPageRespDTO;
 import com.ujs.trainingprogram.tp.service.CourseService;
 import com.ujs.trainingprogram.tp.service.MajorService;
@@ -71,13 +73,16 @@ public class MajorServiceImpl extends ServiceImpl<MajorMapper, MajorDO> implemen
                 .eq(CollegeDO::getCollegeCode, requestParam.getCollegeCode())
                 .eq(CollegeDO::getDelFlag, 0);
         CollegeDO collegeDO = collegeMapper.selectOne(queryWrapper);
+        if (Objects.isNull(collegeDO)) {
+            throw new ClientException("添加专业失败：学院不存在");
+        }
 
         MajorDO majorDO = MajorDO.builder()
                 .majorName(requestParam.getMajorName())
                 .collegeId(collegeDO.getId())
-                .majorType(requestParam.getMajorType())
                 .majorCode(requestParam.getMajorCode())
                 .courseNum(requestParam.getCourseNum())
+                .categoryId(requestParam.getCategoryId())
                 .id(IdUtil.getSnowflakeNextId())
                 .build();
         try {
@@ -88,13 +93,45 @@ public class MajorServiceImpl extends ServiceImpl<MajorMapper, MajorDO> implemen
     }
 
     @Override
-    public void deleteMajor(String majorCode) {
+    public void deleteMajor(Long id) {
         LambdaUpdateWrapper<MajorDO> updateWrapper = Wrappers.lambdaUpdate(MajorDO.class)
-                .eq(MajorDO::getMajorCode, majorCode)
+                .eq(MajorDO::getId, id)
                 .eq(MajorDO::getDelFlag, 0);
         MajorDO majorDO = new MajorDO();
         majorDO.setDelFlag(1);
         baseMapper.update(majorDO, updateWrapper);
+    }
+
+    @Override
+    public void updateMajor(MajorUpdateReqDTO requestParam) {
+
+        // 先填充学院id信息
+        CollegeDO collegeDO = collegeMapper.selectOne(Wrappers.lambdaQuery(CollegeDO.class)
+                .eq(CollegeDO::getCollegeCode, requestParam.getCollegeCode())
+                .eq(CollegeDO::getDelFlag, 0));
+        if (Objects.isNull(collegeDO)) {
+            throw new ClientException("更新专业信息失败：更新后的学院不存在");
+        }
+
+        // 判断 majorCode是否更改，如果更改则更换为新的专业编号
+        String majorCode = requestParam.getNewMajorCode();
+        if (StrUtil.isBlank(requestParam.getNewMajorCode())
+                || Objects.equals(requestParam.getNewMajorCode(), requestParam.getOriginalMajorCode())) {
+            majorCode = requestParam.getOriginalMajorCode();
+        }
+
+        MajorDO majorDO = BeanUtil.toBean(requestParam, MajorDO.class);
+        majorDO.setMajorCode(majorCode);
+        majorDO.setCollegeId(collegeDO.getId());
+
+        LambdaUpdateWrapper<MajorDO> updateWrapper = Wrappers.lambdaUpdate(MajorDO.class)
+                .eq(MajorDO::getMajorCode, requestParam.getOriginalMajorCode());
+        try {
+            baseMapper.update(majorDO, updateWrapper);
+        } catch (DuplicateKeyException ex) {
+            throw new ClientException("更新专业信息失败：更新后的专业编号已存在");
+        }
+
     }
 
     // todo: 可以删了，因为有分页查询

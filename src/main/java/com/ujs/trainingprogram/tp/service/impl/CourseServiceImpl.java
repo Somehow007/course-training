@@ -1,28 +1,58 @@
 package com.ujs.trainingprogram.tp.service.impl;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ujs.trainingprogram.tp.common.result.ResultData;
+import com.ujs.trainingprogram.tp.dao.entity.CollegeDO;
 import com.ujs.trainingprogram.tp.dao.mapper.CourseMapper;
 import com.ujs.trainingprogram.tp.dao.entity.CourseDO;
+import com.ujs.trainingprogram.tp.dto.req.course.CoursePageReqDTO;
+import com.ujs.trainingprogram.tp.dto.req.course.CourseSaveReqDTO;
+import com.ujs.trainingprogram.tp.dto.resp.course.CoursePageRespDTO;
 import com.ujs.trainingprogram.tp.service.CollegeService;
 import com.ujs.trainingprogram.tp.service.CourseService;
 import com.ujs.trainingprogram.tp.service.MajorService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+/**
+ * 课程业务逻辑实现层
+ */
 @Service
+@RequiredArgsConstructor
 public class CourseServiceImpl extends ServiceImpl<CourseMapper, CourseDO> implements CourseService {
-    @Autowired
-    @Lazy
-    private CollegeService collegeService;
-    @Autowired
-    @Lazy
-    private MajorService majorService;
+
+    private final CollegeService collegeService;
+
+    private final MajorService majorService;
+
+    @Override
+    public IPage<CoursePageRespDTO> pageCourse(CoursePageReqDTO requestParam) {
+        IPage<CourseDO> resultPage = baseMapper.pageCourseResult(requestParam);
+        return resultPage.convert(each -> {
+            CoursePageRespDTO result = BeanUtil.toBean(each, CoursePageRespDTO.class);
+            return result;
+        });
+    }
+
+    @Override
+    public void createCourse(CourseSaveReqDTO requestParam) {
+        // todo：1. 新建进数据库 2. 修改学院的课程数量 3. 修改专业的课程数量
+        CourseDO courseDO = BeanUtil.toBean(requestParam, CourseDO.class);
+        baseMapper.insert(courseDO);
+
+        CollegeDO collegeDO = collegeService.getCollegeByName(requestParam.getCollegeName());
+
+
+
+    }
 
     @Override
     public List<CourseDO> selectCourseByCodeAndYear(String code, String year) {

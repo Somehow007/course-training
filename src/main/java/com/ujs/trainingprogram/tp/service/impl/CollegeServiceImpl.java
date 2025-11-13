@@ -3,6 +3,8 @@ package com.ujs.trainingprogram.tp.service.impl;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.IdUtil;
+import cn.hutool.core.util.ObjectUtil;
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
@@ -28,9 +30,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -63,23 +63,20 @@ public class CollegeServiceImpl extends ServiceImpl<CollegeMapper, CollegeDO> im
     @Override
     public void updateCollege(CollegeUpdateReqDTO requestParam) {
         LambdaQueryWrapper<CollegeDO> queryWrapper = Wrappers.lambdaQuery(CollegeDO.class)
-                .eq(CollegeDO::getCollegeCode, requestParam.getOriginCollegeCode())
-                .eq(CollegeDO::getDelFlag, 0);
-        CollegeDO hasCollegeDO = baseMapper.selectOne(queryWrapper);
-        if (hasCollegeDO == null) {
-            throw new ClientException("学院不存在");
+                .eq(CollegeDO::getCollegeCode, requestParam.getCollegeCode());
+
+        CollegeDO collegeDO = baseMapper.selectOne(queryWrapper);
+        if (Objects.isNull(collegeDO)) {
+            throw new ClientException("学院信息更新失败：该学院信息检查不到");
         }
-
         LambdaUpdateWrapper<CollegeDO> updateWrapper = Wrappers.lambdaUpdate(CollegeDO.class)
-                .eq(CollegeDO::getCollegeCode, requestParam.getOriginCollegeCode())
+                .eq(CollegeDO::getCollegeCode, requestParam.getCollegeCode())
                 .eq(CollegeDO::getDelFlag, 0);
 
-        CollegeDO collegeDO = CollegeDO.builder()
-                .collegeCode(requestParam.getNewCollegeCode())
-                .collegeName(requestParam.getCollegeName())
-                .courseNum(requestParam.getCourseNum())
+        CollegeDO collegeDO1 = CollegeDO.builder()
+                .collegeName(StrUtil.isNotBlank(requestParam.getCollegeName()) ? requestParam.getCollegeName() : collegeDO.getCollegeName())
                 .build();
-        baseMapper.update(collegeDO, updateWrapper);
+        baseMapper.update(collegeDO1, updateWrapper);
 
     }
 
@@ -128,20 +125,28 @@ public class CollegeServiceImpl extends ServiceImpl<CollegeMapper, CollegeDO> im
             CollegePageMajorDTO first = majors.get(0);
 
             List<CollegeMajorPageRespDTO> majorList = majors.stream()
-                    .map(majorFlat -> {
-                        return CollegeMajorPageRespDTO.builder()
-                                .majorCode(majorFlat.getMajorCode())
-                                .majorName(majorFlat.getMajorName())
-                                .courseNum(majorFlat.getCourseNum())
-                                .majorType(majorFlat.getMajorType())
-                                .build();
-                    })
+                    .map(majorFlat -> CollegeMajorPageRespDTO.builder()
+                            .majorCode(majorFlat.getMajorCode())
+                            .majorName(majorFlat.getMajorName())
+                            .courseNum(majorFlat.getCourseNum())
+                            .categoryId(majorFlat.getCategoryId())
+                            .build())
                     .toList();
 
+            // 计算专业数量
+            int majorNum = majors.size();
+
+            // 计算学院总课程数
+            int totalCourseNum = majors.stream()
+                    .mapToInt(major -> Optional.ofNullable(major.getCourseNum()).orElse(0))
+                    .sum();
+
             return CollegePageRespDTO.builder()
+                    .id(first.getId())
                     .collegeName(first.getCollegeName())
-                    .collegeCode(first.getCollegeCode())
                     .majors(majorList)
+                    .majorNum(majorNum)
+                    .courseNum(totalCourseNum)
                     .build();
         }).collect(Collectors.toList());
     }
@@ -187,9 +192,9 @@ public class CollegeServiceImpl extends ServiceImpl<CollegeMapper, CollegeDO> im
     }
 
     @Override
-    public void deleteCollege(String collegeCode) {
+    public void deleteCollege(Long id) {
         LambdaUpdateWrapper<CollegeDO> updateWrapper = Wrappers.lambdaUpdate(CollegeDO.class)
-                .eq(CollegeDO::getCollegeCode, collegeCode)
+                .eq(CollegeDO::getId, id)
                 .eq(CollegeDO::getDelFlag, 0);
         CollegeDO collegeDO = new CollegeDO();
         collegeDO.setDelFlag(1);

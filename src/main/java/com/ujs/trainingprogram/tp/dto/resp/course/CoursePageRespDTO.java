@@ -1,46 +1,33 @@
-package com.ujs.trainingprogram.tp.dao.entity;
+package com.ujs.trainingprogram.tp.dto.resp.course;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
-import com.ujs.trainingprogram.tp.common.database.BaseDO;
 import com.ujs.trainingprogram.tp.dao.entity.enums.CourseCategoryEnum;
 import com.ujs.trainingprogram.tp.dao.entity.enums.CourseTypeEnum;
-import lombok.*;
-
-import java.math.BigDecimal;
 
 /**
- * 课程实体
+ * 分页查询课程返回实体
  */
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-@TableName("course")
-public class CourseDO extends BaseDO {
-
-    /**
-     * 主键
-     */
-    @TableId(value = "id")
-    private Long id;
+public class CoursePageRespDTO {
 
     /**
      * 课程编号
      */
+    private Integer courseId;
+
+    /**
+     * 课程代码
+     */
     private String courseCode;
 
     /**
-     * 课程类别关联id
+     * 课程类别
      */
-    private Long dictId;
+    private CourseTypeEnum courseType;
 
     /**
-     * 课程性质（0:必修 1:选修）
+     * todo：枚举类待优化
+     * 课程性质
      */
-    private Integer courseNature;
+    private CourseCategoryEnum courseCategory;
 
     /**
      * 课程名称
@@ -48,14 +35,14 @@ public class CourseDO extends BaseDO {
     private String courseName;
 
     /**
-     * 开课学院id
+     * 开课学院编号
      */
-    private Long collegeId;
+    private String collegeId;
 
     /**
-     * 修读专业id
+     * 修读专业编号
      */
-    private Long majorId;
+    private String majorId;
 
     /**
      * 总学分
@@ -63,19 +50,15 @@ public class CourseDO extends BaseDO {
     private Float totalCredits;
 
     /**
-     * 总学时（小时）
+     * 总学时
      */
     private Float totalHours;
 
     /**
-     * 总学时（周）
+     * 总学时，单位周
      */
-    private Float totalWeeks;
+    private String totalWeeks;
 
-    /**
-     * 当前使用的学时单位
-     */
-    private Integer hoursUnit;
 
     /**
      * 授课学时
@@ -116,4 +99,5 @@ public class CourseDO extends BaseDO {
      * 备注
      */
     private String remark;
+
 }

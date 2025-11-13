@@ -1,5 +1,6 @@
 package com.ujs.trainingprogram.tp.dto.resp.college;
 
+import com.baomidou.mybatisplus.annotation.TableId;
 import com.ujs.trainingprogram.tp.dao.entity.MajorDO;
 import com.ujs.trainingprogram.tp.dto.CollegePageMajorDTO;
 import com.ujs.trainingprogram.tp.dto.req.college.CollegeMajorPageRespDTO;
@@ -18,9 +19,9 @@ import java.util.List;
 public class CollegePageRespDTO {
 
     /**
-     * 学院编号
+     * 主键
      */
-    private String collegeCode;
+    private Long id;
 
     /**
      * 学院名称
@@ -36,4 +37,10 @@ public class CollegePageRespDTO {
      * 总课程数
      */
     private Integer courseNum;
+
+
+    /**
+     * 专业数
+     */
+    private Integer majorNum;
 }

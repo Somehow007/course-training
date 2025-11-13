@@ -28,7 +28,7 @@
             m.major_name,
             c.college_name,
             m.course_num,
-            m.major_type,
+            m.category_id,
             m.create_time,
             m.update_time
         FROM major m
@@ -41,8 +41,8 @@
             <if test="requestParam.majorCode != null and requestParam.majorCode != ''">
                 AND m.major_code = #{requestParam.majorCode}
             </if>
-            <if test="requestParam.majorType != null">
-                AND m.major_type = #{requestParam.majorType}
+            <if test="requestParam.categoryId != null">
+                AND m.category_id = #{requestParam.categoryId}
             </if>
         </where>
         ORDER BY m.create_time DESC

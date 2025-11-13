@@ -1,7 +1,6 @@
 package com.ujs.trainingprogram.tp.dto.req.college;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.ujs.trainingprogram.tp.dao.entity.CollegeDO;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 

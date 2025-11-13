@@ -23,12 +23,13 @@
     <select id="pageCollegeResult" parameterType="com.ujs.trainingprogram.tp.dto.req.college.CollegePageReqDTO"
             resultType="com.ujs.trainingprogram.tp.dto.CollegePageMajorDTO">
         SELECT
+            c.id,
             c.college_code,
             c.college_name,
             m.major_code,
             m.major_name,
             m.course_num,
-            m.major_type
+            m.category_id
         FROM college c
         LEFT JOIN major m ON c.id = m.college_id AND m.del_flag = 0
         WHERE

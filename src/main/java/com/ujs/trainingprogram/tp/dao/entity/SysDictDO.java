@@ -9,14 +9,14 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * 专业实体
+ * 系统字典实体
  */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("major")
-public class MajorDO extends BaseDO {
+@TableName("sys_dict")
+public class SysDictDO extends BaseDO {
 
     /**
      * 主键
@@ -25,27 +25,28 @@ public class MajorDO extends BaseDO {
     private Long id;
 
     /**
-     * 专业编号
+     * 字典类型（如：course_type, user_state）
      */
-    private String majorCode;
+    private String dictType;
 
     /**
-     * 关联学院Id
+     * 字典编码（程序内部引用，如GENERAL_EDUCATION）
      */
-    private Long collegeId;
+    private String dictCode;
 
     /**
-     * 专业分类（0:工学 1:理学 2:文科）
+     * 字典名称（用户界面显示，如通识教育）
      */
-    private Integer categoryId;
+    private String dictName;
 
     /**
-     * 专业名
+     * 排序号
      */
-    private String majorName;
+    private Integer sortOrder;
 
     /**
-     * 课程总数
+     * 备注
      */
-    private Integer courseNum;
+    private String remark;
+
 }

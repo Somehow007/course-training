@@ -32,7 +32,7 @@ public class UserDO implements UserDetails {
     /**
      * 学院编号
      */
-    private String collegeId;
+    private String collegeCode;
 
     /**
      * 用户状态

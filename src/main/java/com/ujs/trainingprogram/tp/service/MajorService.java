@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.ujs.trainingprogram.tp.dao.entity.MajorDO;
 import com.ujs.trainingprogram.tp.dto.req.major.MajorPageReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.major.MajorSaveReqDTO;
+import com.ujs.trainingprogram.tp.dto.req.major.MajorUpdateReqDTO;
 import com.ujs.trainingprogram.tp.dto.resp.major.MajorPageRespDTO;
 
 import java.util.List;
@@ -37,9 +38,16 @@ public interface MajorService extends IService<MajorDO> {
     /**
      * 删除专业
      *
-     * @param majorCode 专业Id
+     * @param id 专业编号
      */
-    void deleteMajor(String majorCode);
+    void deleteMajor(Long id);
+
+    /**
+     * 更新专业
+     *
+     * @param requestParam 更新专业请求参数
+     */
+    void updateMajor(MajorUpdateReqDTO requestParam);
 
     void countAll();
     void modifyCourseNum(String majorId, int num);

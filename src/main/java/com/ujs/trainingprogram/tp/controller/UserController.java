@@ -43,7 +43,7 @@ public class UserController {
             UserReturn userReturn = new UserReturn();
             userReturn.userId = userDO.getUserId();
             userReturn.userState = userDO.getUserState();
-            CollegeDO collegeDO = collegeService.getById(userDO.getCollegeId());
+            CollegeDO collegeDO = collegeService.getById(userDO.getCollegeCode());
             if (collegeDO != null) {
                 userReturn.collegeName = collegeDO.getCollegeName();
             }
@@ -70,9 +70,9 @@ public class UserController {
             if (collegeDOList.size() > 0) {
                 //可进行模糊查找
                 wrapper.and(i -> {
-                    i.like("college_id", collegeDOList.get(0).getCollegeId());
+                    i.like("college_id", collegeDOList.get(0).getCollegeCode());
                     for (int j = 1; j < collegeDOList.size(); j++) {
-                        i.or().like("college_id", collegeDOList.get(j).getCollegeId());
+                        i.or().like("college_id", collegeDOList.get(j).getCollegeCode());
                     }
                 });
             }
@@ -140,7 +140,7 @@ public class UserController {
         userDO.setUserPassword(encoder.encode(userPassword));
         userDO.setUserState(userState);
         userDO.setUserId(userId);
-        userDO.setCollegeId(collegeDO.getCollegeId());
+        userDO.setCollegeCode(collegeDO.getCollegeCode());
 
         return userService.save(userDO) ? ResultMessage.ADD_SUCCESS : ResultMessage.ADD_ERROR;
     }
@@ -177,7 +177,7 @@ public class UserController {
             userDO.setUserPassword(encoder.encode(userPassword));
         }
         userDO.setUserState(userState);
-        userDO.setCollegeId(collegeDO.getCollegeId());
+        userDO.setCollegeCode(collegeDO.getCollegeCode());
 
         return userService.saveOrUpdate(userDO) ? ResultMessage.UPDATE_SUCCESS : ResultMessage.UPDATE_ERROR;
     }
