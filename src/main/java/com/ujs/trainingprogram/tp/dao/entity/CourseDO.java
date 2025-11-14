@@ -105,7 +105,7 @@ public class CourseDO extends BaseDO {
     /**
      * 选修学分要求
      */
-    private byte requiredElective;
+    private Integer requiredElective;
 
     /**
      * 建议修读学期

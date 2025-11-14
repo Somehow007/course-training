@@ -8,6 +8,7 @@ import com.ujs.trainingprogram.tp.dto.req.major.MajorPageReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.major.MajorSaveReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.major.MajorUpdateReqDTO;
 import com.ujs.trainingprogram.tp.dto.resp.major.MajorPageRespDTO;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 

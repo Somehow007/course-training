@@ -48,7 +48,7 @@ public class SysDictServiceImpl extends ServiceImpl<SysDictMapper, SysDictDO> im
                 .eq(SysDictDO::getId, id)
                 .eq(SysDictDO::getDelFlag, 0)
                 .set(SysDictDO::getDelFlag, 1);
-        baseMapper.update(null, queryWrapper);
+        baseMapper.update(queryWrapper);
     }
 
     @Override

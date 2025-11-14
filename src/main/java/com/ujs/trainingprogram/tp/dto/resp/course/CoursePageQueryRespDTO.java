@@ -1,33 +1,37 @@
 package com.ujs.trainingprogram.tp.dto.resp.course;
 
-import com.ujs.trainingprogram.tp.dao.entity.enums.CourseCategoryEnum;
-import com.ujs.trainingprogram.tp.dao.entity.enums.CourseTypeEnum;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.ujs.trainingprogram.tp.common.enums.CourseTypeEnum;
+import lombok.Data;
 
 /**
  * 分页查询课程返回实体
  */
-public class CoursePageRespDTO {
+@Data
+public class CoursePageQueryRespDTO {
 
     /**
-     * 课程编号
+     * 课程id
      */
-    private Integer courseId;
-
-    /**
-     * 课程代码
-     */
-    private String courseCode;
+    private Long courseId;
 
     /**
      * 课程类别
      */
-    private CourseTypeEnum courseType;
+    private String courseType;
 
     /**
-     * todo：枚举类待优化
      * 课程性质
      */
-    private CourseCategoryEnum courseCategory;
+    private Integer courseNature;
+
+    /**
+     * 课程性质（字符串形式）
+     */
+    @JsonProperty("courseNatureDesc")
+    public String getCourseNatureDesc() {
+        return CourseTypeEnum.getDictName(this.courseNature);
+    }
 
     /**
      * 课程名称
@@ -35,14 +39,14 @@ public class CoursePageRespDTO {
     private String courseName;
 
     /**
-     * 开课学院编号
+     * 开课学院名称
      */
-    private String collegeId;
+    private String collegeName;
 
     /**
-     * 修读专业编号
+     * 修读专业名称
      */
-    private String majorId;
+    private String majorName;
 
     /**
      * 总学分
@@ -50,15 +54,14 @@ public class CoursePageRespDTO {
     private Float totalCredits;
 
     /**
-     * 总学时
+     * 总学时（小时）
      */
     private Float totalHours;
 
     /**
-     * 总学时，单位周
+     * 总学时（周）
      */
-    private String totalWeeks;
-
+    private Float totalWeeks;
 
     /**
      * 授课学时
@@ -88,7 +91,7 @@ public class CoursePageRespDTO {
     /**
      * 选修学分要求
      */
-    private byte requiredElective;
+    private Integer requiredElective;
 
     /**
      * 建议修读学期
@@ -99,5 +102,4 @@ public class CoursePageRespDTO {
      * 备注
      */
     private String remark;
-
 }

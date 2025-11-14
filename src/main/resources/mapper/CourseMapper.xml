@@ -20,35 +20,64 @@
 <mapper namespace="com.ujs.trainingprogram.tp.dao.mapper.CourseMapper">
 
     <!-- 分页查询短链接 -->
-    <select id="pageResult" parameterType="com.ujs.trainingprogram.tp.dto.req.course.CoursePageReqDTO"
-            resultType="com.ujs.trainingprogram.tp.dao.entity.CourseDO">
-        SELECT * FROM course
-        WHERE del_flag = 0
-        <if test="courseId != null">
-            AND course_id = #{courseId}
+    <select id="pageCourseResults" parameterType="com.ujs.trainingprogram.tp.dto.req.course.CoursePageQueryReqDTO"
+            resultType="com.ujs.trainingprogram.tp.dto.resp.course.CoursePageQueryRespDTO">
+        SELECT
+        c.id AS courseId,
+        c.course_name AS courseName,
+        c.course_nature AS courseNature,
+        col.college_name AS collegeName,
+        maj.major_name AS majorName,
+        dic.dict_name AS courseType,
+        c.total_credits AS totalCredits,
+        c.total_hours AS totalHours,
+        c.total_weeks AS totalWeeks,
+        c.hour_teach AS hourTeach,
+        c.hour_practice AS hourPractice,
+        c.hour_operation AS hourOperation,
+        c.hour_outside AS hourOutside,
+        c.hour_week AS hourWeek,
+        c.required_elective AS requiredElective,
+        c.term AS term,
+        c.remark AS remark
+        FROM
+        course c
+        LEFT JOIN sys_dict dic ON c.dict_id = dic.id
+        LEFT JOIN college col ON c.college_id = col.id
+        LEFT JOIN major maj ON c.major_id = maj.id
+        WHERE c.del_flag = 0
+        <if test="id != null">
+            AND c.id = #{id}
         </if>
-        <if test="courseCode != null and courseCode != ''">
-            AND course_code = #{courseCode}
-        </if>
-        <if test="courseType != null">
-            AND course_type = #{courseType}
-        </if>
-        <if test="courseCategory != null">
-            AND course_category = #{courseCategory}
+        <if test="courseNature != null">
+            AND c.course_nature = #{courseNature}
         </if>
         <if test="courseName != null and courseName != ''">
-            AND course_name LIKE CONCAT('%', #{courseName}, '%')
+            AND c.course_name LIKE CONCAT('%', #{courseName}, '%')
         </if>
-        <if test="collegeId != null and collegeId != ''">
-            AND college_id = #{collegeId}
+        <!-- 动态处理学院条件：根据ID或名称查询 -->
+        <if test="collegeId != null">
+            AND c.college_id = #{collegeId}
         </if>
-        <if test="majorId != null and majorId != ''">
-            AND major_id = #{majorId}
+        <if test="collegeName != null and collegeName != '' and collegeId == null">
+            AND col.college_name LIKE CONCAT('%', #{collegeName}, '%')
         </if>
-        <if test="term != null">
-            AND term = #{term}
+        <!-- 动态处理专业条件：根据ID或名称查询 -->
+        <if test="majorId != null">
+            AND c.major_id = #{majorId}
         </if>
-        ORDER BY create_time DESC
+        <if test="majorName != null and majorName != '' and majorId == null">
+            AND maj.major_name LIKE CONCAT('%', #{majorName}, '%')
+        </if>
+        <!-- 动态处理字典条件：根据ID或名称查询 -->
+        <if test="dictId != null">
+            AND c.course_type = #{dictId}
+        </if>
+        <if test="dictName != null and dictName != '' and dictId == null">
+            AND dic.dict_name LIKE CONCAT('%', #{dictName}, '%')
+        </if>
+        ORDER BY c.create_time DESC
     </select>
+
 
 </mapper>

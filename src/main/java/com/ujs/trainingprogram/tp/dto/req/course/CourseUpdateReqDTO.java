@@ -4,17 +4,17 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 /**
- * 保存课程请求实体
+ * 课程更新请求实体
  */
 @Data
-@Schema(description = "保存课程请求实体")
-public class CourseSaveReqDTO {
+@Schema(description = "课程更新请求实体")
+public class CourseUpdateReqDTO {
 
     /**
-     * 课程编号
+     * 课程id
      */
-    @Schema(description = "课程编号")
-    private String courseCode;
+    @Schema(description = "课程id")
+    private String courseId;
 
     /**
      * 课程类别关联id

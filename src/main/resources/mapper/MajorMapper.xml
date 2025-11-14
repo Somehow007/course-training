@@ -48,4 +48,16 @@
         ORDER BY m.create_time DESC
     </select>
 
+    <update id="incrementCourseNum">
+        UPDATE major
+        SET course_num = course_num + #{incrementNum}
+        WHERE id = #{majorId}
+    </update>
+
+    <update id="decrementCourseNum">
+        UPDATE major
+        SET course_num = course_num - #{decrementNum}
+        WHERE id = #{majorId}
+    </update>
+
 </mapper>

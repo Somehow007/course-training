@@ -3,12 +3,12 @@ package com.ujs.trainingprogram.tp.service;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.ujs.trainingprogram.tp.common.result.Result;
 import com.ujs.trainingprogram.tp.common.result.ResultData;
 import com.ujs.trainingprogram.tp.dao.entity.CourseDO;
-import com.ujs.trainingprogram.tp.dto.req.course.CoursePageReqDTO;
+import com.ujs.trainingprogram.tp.dto.req.course.CoursePageQueryReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.course.CourseSaveReqDTO;
-import com.ujs.trainingprogram.tp.dto.resp.course.CoursePageRespDTO;
+import com.ujs.trainingprogram.tp.dto.req.course.CourseUpdateReqDTO;
+import com.ujs.trainingprogram.tp.dto.resp.course.CoursePageQueryRespDTO;
 
 import java.util.List;
 
@@ -20,7 +20,7 @@ public interface CourseService extends IService<CourseDO> {
      * @param requestParam 分页查询课程信息请求内容
      * @return  课程信息分页返回结果
      */
-    IPage<CoursePageRespDTO> pageCourse(CoursePageReqDTO requestParam);
+    IPage<CoursePageQueryRespDTO> pageQueryCourse(CoursePageQueryReqDTO requestParam);
 
     /**
      * 添加新的课程
@@ -28,6 +28,20 @@ public interface CourseService extends IService<CourseDO> {
      * @param requestParam  添加新课程的请求参数实体
      */
     void createCourse(CourseSaveReqDTO requestParam);
+
+    /**
+     * 根据id删除课程
+     *
+     * @param id 课程id
+     */
+    void deleteCourse(Long id);
+
+    /**
+     * 更新课程
+     *
+     * @param requestParam  请求参数
+     */
+    void updateCourse(CourseUpdateReqDTO requestParam);
 
     List<CourseDO> selectCourseByCodeAndYear(String code, String year);
     Integer selectCountWithCollege(String collegeId);//查询学院课程数量
