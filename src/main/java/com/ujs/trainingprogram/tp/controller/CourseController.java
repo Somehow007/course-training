@@ -27,10 +27,9 @@ public class CourseController {
 
     private final CourseService courseService;
 
-    private final MajorService majorService;
-
-    private final CollegeService collegeService;
-
+    /**
+     * 分页查询所有课程
+     */
     @Operation(summary = "分页查询所有课程")
     @GetMapping("/api/course/mainAdmin/page")
     public Result<IPage<CoursePageQueryRespDTO>> pageCourse(CoursePageQueryReqDTO requestParam) {

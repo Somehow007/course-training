@@ -12,7 +12,7 @@ import com.ujs.trainingprogram.tp.dto.resp.course.CoursePageQueryRespDTO;
 public interface CourseMapper extends BaseMapper<CourseDO> {
 
     /**
-     * 分页统计短链接
+     * 分页统计课程信息
      */
     IPage<CoursePageQueryRespDTO> pageCourseResults(CoursePageQueryReqDTO requestParam);
 }

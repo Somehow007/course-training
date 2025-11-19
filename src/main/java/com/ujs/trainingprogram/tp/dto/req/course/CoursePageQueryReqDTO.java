@@ -15,13 +15,13 @@ public class CoursePageQueryReqDTO extends Page {
      * 课程id
      */
     @Schema(description = "课程id", example = "1989198349058465792")
-    private Long id;
+    private String id;
 
     /**
      * 课程类别关联id
      */
     @Schema(description = "课程类别", example = "")
-    private Long dictId;
+    private String dictId;
 
     /**
      * 课程类别
@@ -51,7 +51,7 @@ public class CoursePageQueryReqDTO extends Page {
      * 修读专业id
      */
     @Schema(description = "修读专业id", example = "")
-    private Long majorId;
+    private String majorId;
 
     /**
      * 学院名称
@@ -63,6 +63,6 @@ public class CoursePageQueryReqDTO extends Page {
      * 开课学院id
      */
     @Schema(description = "开课学院id", example = "")
-    private Long collegeId;
+    private String collegeId;
 
 }

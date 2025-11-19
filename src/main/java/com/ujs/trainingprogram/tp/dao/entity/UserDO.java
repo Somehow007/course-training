@@ -2,81 +2,46 @@ package com.ujs.trainingprogram.tp.dao.entity;
 
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.ujs.trainingprogram.tp.common.database.BaseDO;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import lombok.NoArgsConstructor;
 
 /**
  * 用户POJO
  */
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @TableName("user")
-public class UserDO implements UserDetails {
+public class UserDO extends BaseDO {
 
     /**
-     * 用户Id
+     * 主键
      */
-    @TableId("user_id")
-    private String userId;
+    @TableId(value = "id")
+    private Long id;
 
     /**
-     * 用户密码
+     * 用户名
      */
-    private String userPassword;
+    private String username;
 
     /**
-     * 学院编号
+     * 密码
      */
-    private String collegeCode;
+    private String password;
 
     /**
-     * 用户状态
+     * 所属学院ID（引用 college.id）
      */
-    private String userState;
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        List<SimpleGrantedAuthority> authorities = new ArrayList<>();
-        authorities.add(new SimpleGrantedAuthority("user"));
-        if (userState.equals("21")) authorities.add(new SimpleGrantedAuthority("admin"));
-        else if (userState.equals("20")) {
-            authorities.add(new SimpleGrantedAuthority("mainAdmin"));
-            authorities.add(new SimpleGrantedAuthority("admin"));
-        }
-        return authorities;
-    }
+    private Long collegeId;
 
-    @Override
-    public String getPassword() {
-        return userPassword;
-    }
+    /**
+     * 用户权限（关联字典表）
+     */
+    private Long dictId;
 
-    @Override
-    public String getUsername() {
-        return userId;
-    }
-
-    @Override
-    public boolean isAccountNonExpired() {
-        return true;
-    }
-
-    @Override
-    public boolean isAccountNonLocked() {
-        return true;
-    }
-
-    @Override
-    public boolean isCredentialsNonExpired() {
-        return true;
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return true;
-    }
 }

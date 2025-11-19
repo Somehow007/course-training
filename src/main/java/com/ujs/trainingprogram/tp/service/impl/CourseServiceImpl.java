@@ -66,7 +66,7 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, CourseDO> imple
 
         // 如果是专业课，让专业课的数量增加
         if (StrUtil.isNotBlank(String.valueOf(requestParam.getMajorId()))) {
-            majorMapper.incrementCourseNum(requestParam.getMajorId(), 1);
+            majorMapper.incrementCourseNum(Long.parseLong(requestParam.getMajorId()), 1);
         }
     }
 
@@ -96,7 +96,7 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, CourseDO> imple
         if (!Objects.equals(requestParam.getMajorId(), originalCourseDO.getMajorId()) &&
                 StrUtil.isNotBlank(String.valueOf(requestParam.getMajorId()))) {
             int isDecrementSuccess = majorMapper.decrementCourseNum(originalCourseDO.getMajorId(), 1);
-            int isIncrementSuccess = majorMapper.incrementCourseNum(requestParam.getMajorId(), 1);
+            int isIncrementSuccess = majorMapper.incrementCourseNum(Long.parseLong(requestParam.getMajorId()), 1);
             if (isIncrementSuccess <= 0 || isDecrementSuccess <= 0) {
                 throw new ClientException("课程信息更新失败：专业课程数量修改失败");
             }

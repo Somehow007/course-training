@@ -1,18 +1,17 @@
 package com.ujs.trainingprogram.tp.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.ujs.trainingprogram.tp.common.constant.AuthConstant;
+import com.ujs.trainingprogram.tp.authentication.RequireAuthentication;
 import com.ujs.trainingprogram.tp.common.result.Result;
 import com.ujs.trainingprogram.tp.common.web.Results;
-import com.ujs.trainingprogram.tp.dao.entity.CollegeDO;
 import com.ujs.trainingprogram.tp.dto.req.college.CollegePageReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.college.CollegeSaveReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.college.CollegeUpdateReqDTO;
 import com.ujs.trainingprogram.tp.dto.resp.college.CollegePageRespDTO;
 import com.ujs.trainingprogram.tp.service.CollegeService;
 import com.ujs.trainingprogram.tp.service.MajorService;
-import com.ujs.trainingprogram.tp.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +28,7 @@ public class CollegeController {
 
     private final CollegeService collegeService;
 
-    private final UserService userService;
+//    private final UserService userService;
 
     private final MajorService majorService;
 
@@ -49,6 +48,7 @@ public class CollegeController {
 //        return Results.success(collegeService.getCollegeByName(collegeName));
 //    }
 
+    @RequireAuthentication(AuthConstant.ACADEMIC_AFFAIRS_STAFF)
     @Operation(summary = "添加学院")
     @PostMapping("/college/mainAdmin/add")
     public Result<Void> createCollege(@RequestBody CollegeSaveReqDTO requestParam) {

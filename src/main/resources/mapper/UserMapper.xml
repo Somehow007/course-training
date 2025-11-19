@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ujs.trainingprogram.tp.dao.mapper.UserMapper">
+
+    <!-- 分页查询用户 -->
+    <select id="pageUserResults" parameterType="com.ujs.trainingprogram.tp.dto.req.user.UserPageQueryReqDTO"
+            resultType="com.ujs.trainingprogram.tp.dto.resp.user.UserPageQueryRespDTO">
+        SELECT
+        u.id AS id,
+        u.username AS username,
+        c.college_name AS collegeName,
+        d.dict_name AS dictName
+        FROM
+        user u
+        LEFT JOIN sys_dict d ON u.dict_id = d.id
+        LEFT JOIN college c ON u.college_id = c.id
+        WHERE u.del_flag = 0
+        <if test="username != null">
+            AND u.username LIKE CONCAT('%', #{username}, '%')
+        </if>
+        <!-- 动态处理学院条件：根据ID或名称查询 -->
+        <if test="collegeId != null">
+            AND c.college_id = #{collegeId}
+        </if>
+        <if test="collegeName != null and collegeName != '' and collegeId == null">
+            AND c.college_name LIKE CONCAT('%', #{collegeName}, '%')
+        </if>
+        <!-- 动态处理字典条件：根据ID或名称查询 -->
+        <if test="dictId != null">
+            AND u.dict_id = #{dictId}
+        </if>
+        <if test="dictName != null and dictName != '' and dictId == null">
+            AND d.dict_name LIKE CONCAT('%', #{dictName}, '%')
+        </if>
+        ORDER BY u.create_time DESC
+    </select>
+
+
+</mapper>
