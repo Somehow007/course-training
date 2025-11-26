@@ -10,6 +10,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.extension.toolkit.SqlHelper;
 import com.ujs.trainingprogram.tp.common.exception.ClientException;
 import com.ujs.trainingprogram.tp.common.result.ResultData;
 import com.ujs.trainingprogram.tp.dao.mapper.CourseMapper;
@@ -56,18 +57,12 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, CourseDO> imple
         CourseDO courseDO = BeanUtil.toBean(requestParam, CourseDO.class);
         courseDO.setId(IdUtil.getSnowflakeNextId());
 
-        validateTimeUnits(courseDO);
-
         try {
             baseMapper.insert(courseDO);
         } catch (DuplicateKeyException ex) {
             throw new ClientException(ex.getMessage());
         }
 
-        // 如果是专业课，让专业课的数量增加
-        if (StrUtil.isNotBlank(String.valueOf(requestParam.getMajorId()))) {
-            majorMapper.incrementCourseNum(Long.parseLong(requestParam.getMajorId()), 1);
-        }
     }
 
     @Override
@@ -81,45 +76,15 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, CourseDO> imple
 
     @Override
     public void updateCourse(CourseUpdateReqDTO requestParam) {
-        LambdaQueryWrapper<CourseDO> queryWrapper = Wrappers.lambdaQuery(CourseDO.class)
-                .eq(CourseDO::getId, requestParam.getCourseId())
-                .eq(CourseDO::getDelFlag, 0);
-        CourseDO originalCourseDO = baseMapper.selectOne(queryWrapper);
-        if (Objects.isNull(originalCourseDO)) {
-            throw new ClientException("课程信息更新失败：不存在该课程");
-        }
-
-        CourseDO courseDO = BeanUtil.toBean(requestParam, CourseDO.class);
-        courseDO.setId(Long.parseLong(requestParam.getCourseId()));
-        validateTimeUnits(courseDO);
-
-        if (!Objects.equals(requestParam.getMajorId(), originalCourseDO.getMajorId()) &&
-                StrUtil.isNotBlank(String.valueOf(requestParam.getMajorId()))) {
-            int isDecrementSuccess = majorMapper.decrementCourseNum(originalCourseDO.getMajorId(), 1);
-            int isIncrementSuccess = majorMapper.incrementCourseNum(Long.parseLong(requestParam.getMajorId()), 1);
-            if (isIncrementSuccess <= 0 || isDecrementSuccess <= 0) {
-                throw new ClientException("课程信息更新失败：专业课程数量修改失败");
-            }
-        }
-
         LambdaUpdateWrapper<CourseDO> updateWrapper = Wrappers.lambdaUpdate(CourseDO.class)
-                .eq(CourseDO::getId, requestParam.getCourseId())
-                .eq(CourseDO::getDelFlag, 0);
-        baseMapper.update(courseDO, updateWrapper);
-    }
+                .eq(CourseDO::getId, requestParam.getId())
+                .set(StrUtil.isNotBlank(requestParam.getCourseName()), CourseDO::getCourseName, requestParam.getCourseName())
+                .set(StrUtil.isNotBlank(requestParam.getDictId()), CourseDO::getDictId, requestParam.getDictId())
+                .set(StrUtil.isNotBlank(String.valueOf(requestParam.getCourseNature())), CourseDO::getCourseNature, requestParam.getCourseNature());
 
-    private void validateTimeUnits(CourseDO requestParam) {
-        boolean hasTotalHours = Optional.ofNullable(requestParam.getTotalHours()).orElse(0f) > 0;
-        boolean hasTotalWeeks = Optional.ofNullable(requestParam.getTotalWeeks()).orElse(0f) > 0;
-        if (hasTotalWeeks == hasTotalHours) {
-            throw new ClientException("创建课程失败，totalHours 和 totalWeeks 必须有且只有一个有值");
-        }
-
-        if (hasTotalHours) {
-            requestParam.setHoursUnit(0);
-        }
-        if (hasTotalWeeks) {
-            requestParam.setHoursUnit(1);
+        int update = baseMapper.update(updateWrapper);
+        if (!SqlHelper.retBool(update)) {
+            throw new ClientException("更新课程信息失败：课程不存在");
         }
     }
 

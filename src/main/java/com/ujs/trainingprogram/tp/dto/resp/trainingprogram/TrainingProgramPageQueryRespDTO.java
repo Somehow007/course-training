@@ -1,35 +1,33 @@
-package com.ujs.trainingprogram.tp.dao.entity;
+package com.ujs.trainingprogram.tp.dto.resp.trainingprogram;
 
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.ujs.trainingprogram.tp.common.database.BaseDO;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.ujs.trainingprogram.tp.common.enums.CourseTypeEnum;
 import lombok.Data;
 
-/**
- * 培养计划详情表
- */
 @Data
-public class TrainingProgramDetailDO extends BaseDO {
-
+public class TrainingProgramPageQueryRespDTO {
     /**
-     * 主键
-     */
-    @TableId(value = "id")
-    private Long id;
-
-    /**
-     * 培养计划 Id
-     */
-    private Long trainingProgramId;
-
-    /**
-     * 课程 Id
+     * 课程id
      */
     private Long courseId;
 
     /**
-     * 课程性质（0:必修 1:选修）
+     * 课程类别
+     */
+    private String courseType;
+
+    /**
+     * 课程性质
      */
     private Integer courseNature;
+
+    /**
+     * 课程性质（字符串形式）
+     */
+    @JsonProperty("courseNatureDesc")
+    public String getCourseNatureDesc() {
+        return CourseTypeEnum.getDictName(this.courseNature);
+    }
 
     /**
      * 课程名称
@@ -37,14 +35,14 @@ public class TrainingProgramDetailDO extends BaseDO {
     private String courseName;
 
     /**
-     * 开课学院id
+     * 开课学院名称
      */
-    private Long collegeId;
+    private String collegeName;
 
     /**
-     * 修读专业id
+     * 修读专业名称
      */
-    private Long majorId;
+    private String majorName;
 
     /**
      * 总学分
@@ -60,11 +58,6 @@ public class TrainingProgramDetailDO extends BaseDO {
      * 总学时（周）
      */
     private Float totalWeeks;
-
-    /**
-     * 当前使用的学时单位
-     */
-    private Integer hoursUnit;
 
     /**
      * 授课学时

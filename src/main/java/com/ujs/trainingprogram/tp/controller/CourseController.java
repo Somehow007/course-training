@@ -39,7 +39,7 @@ public class CourseController {
     /**
      * 添加任意学院的课程
      */
-    @Operation(summary = "管理员为任意学院添加课程")
+    @Operation(summary = "管理员添加课程")
     @PostMapping("/api/course/mainAdmin/create")
     public Result<Void> createCourse(@RequestBody CourseSaveReqDTO requestParam) {
         courseService.createCourse(requestParam);

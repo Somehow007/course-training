@@ -41,28 +41,4 @@ public class CoursePageQueryReqDTO extends Page {
     @Schema(description = "课程名称", example = "Java开发")
     private String courseName;
 
-    /**
-     * 专业名称
-     */
-    @Schema(description = "专业名称", example = "软件工程")
-    private String majorName;
-
-    /**
-     * 修读专业id
-     */
-    @Schema(description = "修读专业id", example = "")
-    private String majorId;
-
-    /**
-     * 学院名称
-     */
-    @Schema(description = "学院名称", example = "计算机科学与通信工程学院")
-    private String collegeName;
-
-    /**
-     * 开课学院id
-     */
-    @Schema(description = "开课学院id", example = "")
-    private String collegeId;
-
 }

@@ -12,7 +12,7 @@ import com.ujs.trainingprogram.tp.dto.resp.course.CoursePageQueryRespDTO;
 public interface CourseMapper extends BaseMapper<CourseDO> {
 
     /**
-     * 分页统计课程信息
+     * 分页统计课程信息，只显示目前已有课程，不显示课程具体属于什么专业，不显示学分等信息
      */
     IPage<CoursePageQueryRespDTO> pageCourseResults(CoursePageQueryReqDTO requestParam);
 }
