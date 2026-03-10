@@ -9,12 +9,6 @@ import lombok.Data;
 @Data
 @Schema(description = "创建培养计划请求参数")
 public class TrainingProgramCreateReqDTO {
-    
-    /**
-     * 培养计划名称
-     */
-    @Schema(description = "培养计划名称", example = "软件工程培养计划")
-    private String name;
 
     /**
      * 专业id

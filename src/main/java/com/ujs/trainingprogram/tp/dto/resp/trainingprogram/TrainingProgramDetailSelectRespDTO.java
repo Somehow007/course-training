@@ -1,38 +1,32 @@
 package com.ujs.trainingprogram.tp.dto.resp.trainingprogram;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.ujs.trainingprogram.tp.common.enums.CourseTypeEnum;
 import lombok.Data;
 
+/**
+ * 查询某专业的培养计划返回实体
+ */
 @Data
-public class TrainingProgramPageQueryRespDTO {
-    /**
-     * 课程id
-     */
-    private Long courseId;
+public class TrainingProgramDetailSelectRespDTO {
 
     /**
-     * 课程类别
+     * 培养计划名称
      */
-    private String courseType;
-
-    /**
-     * 课程性质
-     */
-    private Integer courseNature;
-
-    /**
-     * 课程性质（字符串形式）
-     */
-    @JsonProperty("courseNatureDesc")
-    public String getCourseNatureDesc() {
-        return CourseTypeEnum.getDictName(this.courseNature);
-    }
+    private String name;
 
     /**
      * 课程名称
      */
     private String courseName;
+
+    /**
+     * 课程性质（0:必修 1:选修）
+     */
+    private Integer courseNature;
+
+    /**
+     * 课程类型
+     */
+    private String courseType;
 
     /**
      * 开课学院名称
@@ -58,6 +52,11 @@ public class TrainingProgramPageQueryRespDTO {
      * 总学时（周）
      */
     private Float totalWeeks;
+
+    /**
+     * 当前使用的学时单位
+     */
+    private Integer hoursUnit;
 
     /**
      * 授课学时
@@ -98,4 +97,10 @@ public class TrainingProgramPageQueryRespDTO {
      * 备注
      */
     private String remark;
+
+    /**
+     * 版本号
+     */
+    private Integer version;
+
 }

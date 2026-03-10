@@ -1,6 +1,8 @@
 package com.ujs.trainingprogram.tp.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.ujs.trainingprogram.tp.authentication.RequireAuthentication;
+import com.ujs.trainingprogram.tp.common.constant.AuthConstant;
 import com.ujs.trainingprogram.tp.common.result.Result;
 import com.ujs.trainingprogram.tp.common.web.Results;
 import com.ujs.trainingprogram.tp.dto.req.major.MajorPageReqDTO;
@@ -25,11 +27,10 @@ public class MajorController {
 
     private final MajorService majorService;
 
-    private final CollegeService collegeService;
-
     /**
      * 添加专业
      */
+    @RequireAuthentication(AuthConstant.ACADEMIC_AFFAIRS_STAFF)
     @Operation(summary = "添加专业")
     @PostMapping("/api/major/mainAdmin/add")
     public Result<Void> createMajor(@RequestBody MajorSaveReqDTO requestParam) {
@@ -40,6 +41,7 @@ public class MajorController {
     /**
      * 删除专业
      */
+    @RequireAuthentication(AuthConstant.ACADEMIC_AFFAIRS_STAFF)
     @Operation(summary = "删除专业")
     @DeleteMapping("/api/major/mainAdmin/delete/{id}")
     public Result<Void> deleteMajor(@PathVariable String id) {
@@ -50,6 +52,7 @@ public class MajorController {
     /**
      * 修改专业
      */
+    @RequireAuthentication(AuthConstant.ACADEMIC_AFFAIRS_STAFF)
     @Operation(summary = "修改专业")
     @PutMapping("/api/major/mainAdmin/update")
     public Result<Void> updateMajor(@RequestBody MajorUpdateReqDTO requestParam) {

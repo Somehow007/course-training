@@ -20,6 +20,13 @@ server:
     uri-encoding: utf-8
     threads:
       max: 200
+  servlet:
+    session:
+      timeout: 7d
+      cookie:
+        http-only: true
+        secure: false
+        same-site: lax
 
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml

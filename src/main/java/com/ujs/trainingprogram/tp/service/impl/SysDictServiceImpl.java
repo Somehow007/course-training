@@ -19,6 +19,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 /**
  * 系统字典业务逻辑实现层
  */
@@ -60,5 +62,12 @@ public class SysDictServiceImpl extends ServiceImpl<SysDictMapper, SysDictDO> im
                 .eq(SysDictDO::getDelFlag, 0);
         IPage<SysDictDO> resultPage = baseMapper.selectPage(requestParam, queryWrapper);
         return resultPage.convert(each -> BeanUtil.toBean(each, SysDictPageQueryRespDTO.class));
+    }
+
+    @Override
+    public List<SysDictDO> listSysDict() {
+        LambdaQueryWrapper<SysDictDO> queryWrapper = Wrappers.lambdaQuery(SysDictDO.class)
+                .eq(SysDictDO::getDelFlag, 0);
+        return baseMapper.selectList(queryWrapper);
     }
 }

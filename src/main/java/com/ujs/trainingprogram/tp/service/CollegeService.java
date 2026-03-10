@@ -14,7 +14,6 @@ import java.util.List;
  * 学院接口层
  */
 public interface CollegeService extends IService<CollegeDO> {
-    String getMaxCollegeId();
 
     /**
      * 创建学院
@@ -51,15 +50,12 @@ public interface CollegeService extends IService<CollegeDO> {
      */
     IPage<CollegePageRespDTO> pageCollege(CollegePageReqDTO requestParam);
 
-    List<CollegeDO> getCollegeNameAndId();
-
     /**
-     * 根据学院名称查询学院信息
-     *
-     * @param collegeName 查询学院信息请求参数
-     * @return 返回实体
+     * 获取学院名和 ID
+     * todo：等会删了，有上位替代
+     * @return  学院信息
      */
-    CollegeDO getCollegeByName(String collegeName);
+    List<CollegeDO> getCollegeNameAndId();
 
     /**
      * 删除学院
@@ -67,6 +63,14 @@ public interface CollegeService extends IService<CollegeDO> {
      * @param id 学院主键
      */
     void deleteCollege(Long id);
+
+    /**
+     *
+     * 获取所有现存学院信息
+     *
+     * @return 学院信息
+     */
+    List<CollegeDO> listColleges();
 
 //    List<College> getCollegeNameAndCourseNum();
 }

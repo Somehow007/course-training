@@ -13,7 +13,7 @@ public class CourseUpdateReqDTO {
     /**
      * 课程id
      */
-    @Schema(description = "课程id")
+    @Schema(description = "课程id", example = "1992813288416546816", requiredMode = Schema.RequiredMode.REQUIRED)
     private String id;
 
     /**
@@ -21,6 +21,12 @@ public class CourseUpdateReqDTO {
      */
     @Schema(description = "课程类别关联id", example = "1988933958606082048", requiredMode = Schema.RequiredMode.REQUIRED)
     private String dictId;
+
+    /**
+     * 开课学院Id
+     */
+    @Schema(description = "开课学院Id", example = "1988456399996981248", requiredMode = Schema.RequiredMode.REQUIRED)
+    private String collegeId;
 
     /**
      * 课程性质（0:必修 1:选修）

@@ -42,5 +42,5 @@ public class CollegePageMajorDTO {
     /**
      * 专业分类（0:工学 1:理学 2:文科）
      */
-    private Integer categoryId;
+    private String category;
 }

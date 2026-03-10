@@ -38,7 +38,6 @@ public class CollegePageRespDTO {
      */
     private Integer courseNum;
 
-
     /**
      * 专业数
      */

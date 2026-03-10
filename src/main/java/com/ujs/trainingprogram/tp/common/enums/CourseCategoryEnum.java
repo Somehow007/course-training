@@ -1,4 +1,4 @@
-package com.ujs.trainingprogram.tp.dao.entity.enums;
+package com.ujs.trainingprogram.tp.common.enums;
 
 import com.baomidou.mybatisplus.annotation.EnumValue;
 

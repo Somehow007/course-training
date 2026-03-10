@@ -1,13 +1,17 @@
 package com.ujs.trainingprogram.tp.dao.entity;
 
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.ujs.trainingprogram.tp.common.database.BaseDO;
+import lombok.Builder;
 import lombok.Data;
 
 /**
  * 培养计划详情表
  */
 @Data
+@Builder
+@TableName(value = "training_program_detail")
 public class TrainingProgramDetailDO extends BaseDO {
 
     /**
@@ -105,4 +109,9 @@ public class TrainingProgramDetailDO extends BaseDO {
      * 备注
      */
     private String remark;
+
+    /**
+     * 版本号
+     */
+    private Integer version;
 }

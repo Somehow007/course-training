@@ -7,6 +7,8 @@ import com.ujs.trainingprogram.tp.dto.req.sysdict.SysDictCreateReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.sysdict.SysDictPageQueryReqDTO;
 import com.ujs.trainingprogram.tp.dto.resp.sysdict.SysDictPageQueryRespDTO;
 
+import java.util.List;
+
 /**
  * 系统字典业务逻辑层
  */
@@ -33,4 +35,10 @@ public interface SysDictService extends IService<SysDictDO> {
      */
     IPage<SysDictPageQueryRespDTO> pageQuerySysDict(SysDictPageQueryReqDTO requestParam);
 
+    /**
+     * 查询所有系统字典
+     *
+     * @return  系统字典
+     */
+    List<SysDictDO> listSysDict();
 }

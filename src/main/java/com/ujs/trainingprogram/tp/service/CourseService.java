@@ -1,9 +1,7 @@
 package com.ujs.trainingprogram.tp.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.ujs.trainingprogram.tp.common.result.ResultData;
 import com.ujs.trainingprogram.tp.dao.entity.CourseDO;
 import com.ujs.trainingprogram.tp.dto.req.course.CoursePageQueryReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.course.CourseSaveReqDTO;
@@ -32,9 +30,9 @@ public interface CourseService extends IService<CourseDO> {
     /**
      * 根据id删除课程
      *
-     * @param id 课程id
+     * @param ids 课程id
      */
-    void deleteCourse(Long id);
+    void deleteCourse(List<String> ids);
 
     /**
      * 更新课程
@@ -43,12 +41,11 @@ public interface CourseService extends IService<CourseDO> {
      */
     void updateCourse(CourseUpdateReqDTO requestParam);
 
-    List<CourseDO> selectCourseByCodeAndYear(String code, String year);
-    Integer selectCountWithCollege(String collegeId);//查询学院课程数量
-    Integer selectCountWithMajor(String majorId);//查询专业课程数量
+    /**
+     * 查询所有课程
+     *
+     * @return  所有课程
+     */
+    List<CourseDO> listCourses();
 
-    ResultData selectWithWrapper(long cur, long size, QueryWrapper<CourseDO> wrapper);
-    ResultData selectSimple(String code, String year, String state, String collegeId);
-    ResultData selectWithCourseId(long cur, long size, Integer courseId);
-    List<CourseDO> selectWithYear(String year);
 }

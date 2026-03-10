@@ -19,7 +19,8 @@ public class CollegeSaveReqDTO {
     /**
      * 学院名称
      */
-    @Schema(description = "学院名称", example = "计算机科学与通信工程学院", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "学院名称", example = "计算机学院", requiredMode = Schema.RequiredMode.REQUIRED)
     private String collegeName;
+
 
 }

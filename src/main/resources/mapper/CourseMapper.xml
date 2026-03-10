@@ -26,26 +26,44 @@
         c.id AS courseId,
         c.course_name AS courseName,
         c.course_nature AS courseNature,
-        dic.dict_name AS courseType
+        dic.dict_name AS courseType,
+        col.college_name AS collegeName
         FROM
         course c
         LEFT JOIN sys_dict dic ON c.dict_id = dic.id
+        LEFT JOIN college col ON c.college_id = col.id
         WHERE c.del_flag = 0
-        <if test="id != null">
-            AND c.id = #{id}
+        <if test="requestParam.courseIds != null and requestParam.courseIds.size() >= 0">
+            AND c.id IN
+            <foreach collection="requestParam.courseIds" item="courseId" open="(" separator="," close=")">
+                #{courseId}
+            </foreach>
         </if>
         <if test="courseNature != null">
             AND c.course_nature = #{courseNature}
         </if>
-        <if test="courseName != null and courseName != ''">
-            AND c.course_name LIKE CONCAT('%', #{courseName}, '%')
+        <if test="requestParam.courseNames != null and requestParam.courseNames.size() >= 0">
+            AND (
+            <foreach collection="requestParam.courseNames" item="courseName" open="" separator=" OR " close="">
+                c.course_name LIKE CONCAT('%', #{courseName}, '%')
+            </foreach>
+            )
         </if>
         <!-- 动态处理字典条件：根据ID或名称查询 -->
         <if test="dictId != null">
-            AND c.course_type = #{dictId}
+            AND c.course_type
+            <foreach collection="requestParam.collegeIds" item="collegeId" open="(" separator="," close=")">
+            #{collegeId}
+            </foreach>
         </if>
         <if test="dictName != null and dictName != '' and dictId == null">
             AND dic.dict_name LIKE CONCAT('%', #{dictName}, '%')
+        </if>
+        <if test="collegeId != null">
+            AND c.college_id = #{collegeId}
+        </if>
+        <if test="collegeName != null and collegeName != '' and collegeId == null">
+            AND col.college_name LIKE CONCAT('%', #{collegeName}, '%')
         </if>
         ORDER BY c.create_time DESC
     </select>

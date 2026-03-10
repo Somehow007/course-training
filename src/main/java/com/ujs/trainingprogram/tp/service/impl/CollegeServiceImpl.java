@@ -12,6 +12,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.extension.toolkit.SqlHelper;
 import com.ujs.trainingprogram.tp.common.exception.ClientException;
 import com.ujs.trainingprogram.tp.common.exception.ServiceException;
 import com.ujs.trainingprogram.tp.dao.mapper.CollegeMapper;
@@ -41,13 +42,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CollegeServiceImpl extends ServiceImpl<CollegeMapper, CollegeDO> implements CollegeService {
 
-    private final RedissonClient redissonClient;
-
-    @Override
-    public String getMaxCollegeId() {
-        return getBaseMapper().getMaxCollegeId();
-    }
-
     @Override
     public void createCollege(CollegeSaveReqDTO requestParam) {
         CollegeDO collegeDO = BeanUtil.toBean(requestParam, CollegeDO.class);
@@ -55,29 +49,22 @@ public class CollegeServiceImpl extends ServiceImpl<CollegeMapper, CollegeDO> im
         try {
             baseMapper.insert(collegeDO);
         } catch (DuplicateKeyException ex) {
-            throw new ServiceException(String.format("学院编号: %s 重复创建", requestParam.getCollegeCode()));
+            throw new ServiceException(String.format("学院名称: %s 重复创建", requestParam.getCollegeName()));
         }
     }
 
     @Transactional(rollbackFor = Exception.class)
     @Override
     public void updateCollege(CollegeUpdateReqDTO requestParam) {
-        LambdaQueryWrapper<CollegeDO> queryWrapper = Wrappers.lambdaQuery(CollegeDO.class)
-                .eq(CollegeDO::getCollegeCode, requestParam.getCollegeCode());
-
-        CollegeDO collegeDO = baseMapper.selectOne(queryWrapper);
-        if (Objects.isNull(collegeDO)) {
-            throw new ClientException("学院信息更新失败：该学院信息检查不到");
-        }
         LambdaUpdateWrapper<CollegeDO> updateWrapper = Wrappers.lambdaUpdate(CollegeDO.class)
-                .eq(CollegeDO::getCollegeCode, requestParam.getCollegeCode())
-                .eq(CollegeDO::getDelFlag, 0);
+                .eq(CollegeDO::getId, requestParam.getCollegeId())
+                .eq(CollegeDO::getDelFlag, 0)
+                .set(StrUtil.isNotBlank(requestParam.getCollegeName()), CollegeDO::getCollegeName, requestParam.getCollegeName());
 
-        CollegeDO collegeDO1 = CollegeDO.builder()
-                .collegeName(StrUtil.isNotBlank(requestParam.getCollegeName()) ? requestParam.getCollegeName() : collegeDO.getCollegeName())
-                .build();
-        baseMapper.update(collegeDO1, updateWrapper);
-
+        int infectRow = baseMapper.update(updateWrapper);
+        if (!SqlHelper.retBool(infectRow)) {
+            throw new ClientException("更新失败，该学院不存在！");
+        }
     }
 
 
@@ -129,7 +116,7 @@ public class CollegeServiceImpl extends ServiceImpl<CollegeMapper, CollegeDO> im
                             .majorCode(majorFlat.getMajorCode())
                             .majorName(majorFlat.getMajorName())
                             .courseNum(majorFlat.getCourseNum())
-                            .categoryId(majorFlat.getCategoryId())
+                            .category(majorFlat.getCategory())
                             .build())
                     .toList();
 
@@ -184,14 +171,6 @@ public class CollegeServiceImpl extends ServiceImpl<CollegeMapper, CollegeDO> im
     }
 
     @Override
-    public CollegeDO getCollegeByName(String collegeName) {
-        LambdaQueryWrapper<CollegeDO> queryWrapper = Wrappers.lambdaQuery(CollegeDO.class)
-                .like(CollegeDO::getCollegeName, collegeName)
-                .eq(CollegeDO::getDelFlag, 0);
-        return baseMapper.selectOne(queryWrapper);
-    }
-
-    @Override
     public void deleteCollege(Long id) {
         LambdaUpdateWrapper<CollegeDO> updateWrapper = Wrappers.lambdaUpdate(CollegeDO.class)
                 .eq(CollegeDO::getId, id)
@@ -201,10 +180,10 @@ public class CollegeServiceImpl extends ServiceImpl<CollegeMapper, CollegeDO> im
         baseMapper.update(collegeDO, updateWrapper);
     }
 
-//    @Override
-//    public List<College> getCollegeNameAndCourseNum() {
-//        QueryWrapper<College> wrapper = new QueryWrapper<>();
-//        wrapper.select("college_name", "course_num");
-//        return getBaseMapper().selectList(wrapper);
-//    }
+    @Override
+    public List<CollegeDO> listColleges() {
+        LambdaQueryWrapper<CollegeDO> queryWrapper = Wrappers.lambdaQuery(CollegeDO.class)
+                .eq(CollegeDO::getDelFlag, 0);
+        return baseMapper.selectList(queryWrapper);
+    }
 }

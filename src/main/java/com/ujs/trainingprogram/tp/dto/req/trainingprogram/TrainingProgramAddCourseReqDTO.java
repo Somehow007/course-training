@@ -13,13 +13,13 @@ public class TrainingProgramAddCourseReqDTO {
     /**
      * 培养计划 Id
      */
-    @Schema(description = "培养计划 Id", example = "1988933958606082048", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "培养计划 Id", example = "1993554514534068224", requiredMode = Schema.RequiredMode.REQUIRED)
     private String trainingProgramId;
 
     /**
      * 课程 Id
      */
-    @Schema(description = "课程 Id", example = "1988933958606082048", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "课程 Id", example = "1992813288416546816", requiredMode = Schema.RequiredMode.REQUIRED)
     private String courseId;
 
     /**

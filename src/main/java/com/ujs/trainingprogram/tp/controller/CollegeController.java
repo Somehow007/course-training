@@ -28,25 +28,11 @@ public class CollegeController {
 
     private final CollegeService collegeService;
 
-//    private final UserService userService;
-
-    private final MajorService majorService;
-
     @Operation(summary = "分页查询所有学院")
     @GetMapping("/college/page")
     public Result<IPage<CollegePageRespDTO>> pageColleges(CollegePageReqDTO requestParam) {
-        log.info("请求参数: page= {}", requestParam.getPages(),
-                ", size = " + requestParam.getSize(),
-                ", college_code = " + requestParam.getCollegeCode(),
-                ", college_name = " + requestParam.getCollegeName());
         return Results.success(collegeService.pageCollege(requestParam));
     }
-
-//    @Operation(summary = "根据学院名称查询学院信息")
-//    @GetMapping("/college/{collegeName}")
-//    public Result<CollegeDO> getCollegeByName(@PathVariable("collegeName") String collegeName) {
-//        return Results.success(collegeService.getCollegeByName(collegeName));
-//    }
 
     @RequireAuthentication(AuthConstant.ACADEMIC_AFFAIRS_STAFF)
     @Operation(summary = "添加学院")
@@ -56,6 +42,7 @@ public class CollegeController {
         return Results.success();
     }
 
+    @RequireAuthentication(AuthConstant.ACADEMIC_AFFAIRS_STAFF)
     @Operation(summary = "删除学院")
     @DeleteMapping("/college/mainAdmin/delete/{id}")
     public Result<Void> deleteCollege(@PathVariable String id) {
@@ -63,6 +50,7 @@ public class CollegeController {
         return Results.success();
     }
 
+    @RequireAuthentication(AuthConstant.ACADEMIC_AFFAIRS_STAFF)
     @Operation(summary = "修改学院")
     @PutMapping("/college/mainAdmin/update")
     public Result<Void> updateCollege(@RequestBody CollegeUpdateReqDTO requestParam) {

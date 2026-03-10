@@ -13,14 +13,14 @@ public class MajorSaveReqDTO {
     /**
      * 专业编号
      */
-    @Schema(description = "专业编号", example = "0001", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "专业编号(可为空，如有需要再添加)", example = "", requiredMode = Schema.RequiredMode.REQUIRED)
     private String majorCode;
 
     /**
-     * 学院编号
+     * 学院Id
      */
-    @Schema(description = "学院编号", example = "01", requiredMode = Schema.RequiredMode.REQUIRED)
-    private String collegeCode;
+    @Schema(description = "所属学院Id", example = "1988456399996981248", requiredMode = Schema.RequiredMode.REQUIRED)
+    private String collegeId;
 
     /**
      * 专业名称
@@ -31,13 +31,13 @@ public class MajorSaveReqDTO {
     /**
      * 课程总数
      */
-    @Schema(description = "课程总数", example = "100", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+    @Schema(description = "课程总数(可为空，如有需要再添加)", example = "", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
     private Integer courseNum;
 
     /**
      * 专业分类（0:工学 1:理学 2:文科）
      */
     @Schema(description = "专业分类（0:工学 1:理学 2:文科）", example = "0", requiredMode = Schema.RequiredMode.REQUIRED)
-    private Integer categoryId;
+    private Integer category;
 
 }

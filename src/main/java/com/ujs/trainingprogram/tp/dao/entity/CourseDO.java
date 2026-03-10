@@ -1,15 +1,9 @@
 package com.ujs.trainingprogram.tp.dao.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.ujs.trainingprogram.tp.common.database.BaseDO;
-import com.ujs.trainingprogram.tp.dao.entity.enums.CourseCategoryEnum;
-import com.ujs.trainingprogram.tp.dao.entity.enums.CourseTypeEnum;
 import lombok.*;
-
-import java.math.BigDecimal;
 
 /**
  * 课程实体
@@ -36,6 +30,11 @@ public class CourseDO extends BaseDO {
      * 课程类别关联id
      */
     private Long dictId;
+
+    /**
+     * 开课学院
+     */
+    private Long collegeId;
 
     /**
      * 课程性质（0:必修 1:选修）

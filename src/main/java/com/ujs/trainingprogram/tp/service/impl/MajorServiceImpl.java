@@ -45,50 +45,28 @@ public class MajorServiceImpl extends ServiceImpl<MajorMapper, MajorDO> implemen
     @Autowired
     private CollegeMapper collegeMapper;
 
-
-    @Override
-    public String getMaxMajorId(QueryWrapper<MajorDO> wrapper) {
-        return getBaseMapper().getMaxMajorId(wrapper);
-    }
-
-    @Override
-    public List<MajorDO> getMajorLikeByName(String majorName) {
-        QueryWrapper<MajorDO> wrapper = new QueryWrapper<>();
-        wrapper.like("major_name", majorName);
-        return getBaseMapper().selectList(wrapper);
-    }
-
-    // 此处的返回值中有collegeName，需要查询数据库，这样是否会造成性能问题？
-    // 采用 join 的方式，避免性能杀手
     @Override
     public IPage<MajorPageRespDTO> pageMajors(MajorPageReqDTO requestParam) {
         Page<MajorPageRespDTO> page = new Page<>(requestParam.getCurrent(), requestParam.getSize());
         return baseMapper.pageMajorResults(page, requestParam);
     }
 
-
     @Override
     public void createMajor(MajorSaveReqDTO requestParam) {
         LambdaQueryWrapper<CollegeDO> queryWrapper = Wrappers.lambdaQuery(CollegeDO.class)
-                .eq(CollegeDO::getCollegeCode, requestParam.getCollegeCode())
+                .eq(CollegeDO::getId, requestParam.getCollegeId())
                 .eq(CollegeDO::getDelFlag, 0);
         CollegeDO collegeDO = collegeMapper.selectOne(queryWrapper);
         if (Objects.isNull(collegeDO)) {
             throw new ClientException("添加专业失败：学院不存在");
         }
 
-        MajorDO majorDO = MajorDO.builder()
-                .majorName(requestParam.getMajorName())
-                .collegeId(collegeDO.getId())
-                .majorCode(requestParam.getMajorCode())
-                .courseNum(requestParam.getCourseNum())
-                .categoryId(requestParam.getCategoryId())
-                .id(IdUtil.getSnowflakeNextId())
-                .build();
+        MajorDO majorDO = BeanUtil.toBean(requestParam, MajorDO.class);
+        majorDO.setId(IdUtil.getSnowflakeNextId());
         try {
             baseMapper.insert(majorDO);
         } catch (DuplicateKeyException ex) {
-            throw new ServiceException(String.format("专业编号: %s 重复创建", requestParam.getMajorCode()));
+            throw new ClientException(String.format("专业名称: %s 重复创建", requestParam.getMajorName()));
         }
     }
 
@@ -105,69 +83,30 @@ public class MajorServiceImpl extends ServiceImpl<MajorMapper, MajorDO> implemen
     @Override
     public void updateMajor(MajorUpdateReqDTO requestParam) {
 
-        // 先填充学院id信息
-        CollegeDO collegeDO = collegeMapper.selectOne(Wrappers.lambdaQuery(CollegeDO.class)
-                .eq(CollegeDO::getCollegeCode, requestParam.getCollegeCode())
-                .eq(CollegeDO::getDelFlag, 0));
-        if (Objects.isNull(collegeDO)) {
-            throw new ClientException("更新专业信息失败：更新后的学院不存在");
+        // 检查修改到的学院是否存在
+        if (StrUtil.isNotBlank(requestParam.getCollegeId())) {
+            CollegeDO collegeDO = collegeMapper.selectOne(Wrappers.lambdaQuery(CollegeDO.class)
+                    .eq(CollegeDO::getId, requestParam.getCollegeId())
+                    .eq(CollegeDO::getDelFlag, 0));
+            if (Objects.isNull(collegeDO)) {
+                throw new ClientException("更新专业信息失败：更新后的学院不存在");
+            }
         }
-
-        // 判断 majorCode是否更改，如果更改则更换为新的专业编号
-        String majorCode = requestParam.getNewMajorCode();
-        if (StrUtil.isBlank(requestParam.getNewMajorCode())
-                || Objects.equals(requestParam.getNewMajorCode(), requestParam.getOriginalMajorCode())) {
-            majorCode = requestParam.getOriginalMajorCode();
-        }
-
-        MajorDO majorDO = BeanUtil.toBean(requestParam, MajorDO.class);
-        majorDO.setMajorCode(majorCode);
-        majorDO.setCollegeId(collegeDO.getId());
 
         LambdaUpdateWrapper<MajorDO> updateWrapper = Wrappers.lambdaUpdate(MajorDO.class)
-                .eq(MajorDO::getMajorCode, requestParam.getOriginalMajorCode());
+                .eq(MajorDO::getId, requestParam.getMajorId())
+                .eq(MajorDO::getDelFlag, 0)
+                .set(StrUtil.isNotBlank(requestParam.getCollegeId()), MajorDO::getCollegeId, requestParam.getCollegeId())
+                .set(StrUtil.isNotBlank(requestParam.getMajorName()), MajorDO::getMajorName, requestParam.getMajorName())
+                .set(!Objects.isNull(requestParam.getCategory()) &&
+                                (requestParam.getCategory() == 0 || requestParam.getCategory() == 1 || requestParam.getCategory() == 2),
+                        MajorDO::getCategory, requestParam.getCategory());
         try {
-            baseMapper.update(majorDO, updateWrapper);
+            baseMapper.update(updateWrapper);
         } catch (DuplicateKeyException ex) {
-            throw new ClientException("更新专业信息失败：更新后的专业编号已存在");
+            throw new ClientException(String.format("更新专业信息失败，专业名称: %s 已存在", requestParam.getMajorName()));
         }
 
     }
 
-    // todo: 可以删了，因为有分页查询
-    @Override
-    public List<MajorDO> getMajorByCollegeCode(String collegeCode) {
-        LambdaQueryWrapper<CollegeDO> queryWrapper = Wrappers.lambdaQuery(CollegeDO.class)
-                .eq(CollegeDO::getCollegeCode, collegeCode)
-                .eq(CollegeDO::getDelFlag, 0);
-        CollegeDO collegeDO = collegeMapper.selectOne(queryWrapper);
-
-        LambdaQueryWrapper<MajorDO> majorDOQueryWrapper = Wrappers.lambdaQuery(MajorDO.class)
-                .eq(MajorDO::getCollegeId, collegeDO.getId())
-                .eq(MajorDO::getDelFlag, 0);
-        return getBaseMapper().selectList(majorDOQueryWrapper);
-    }
-
-
-    /**
-     * 重新计算专业课程总数
-     */
-    @Override
-    public void countAll() {
-        List<MajorDO> list = getBaseMapper().selectList(new QueryWrapper<>());
-        list.forEach(major -> major.setCourseNum(courseService.selectCountWithMajor(major.getMajorCode())));
-        saveOrUpdateBatch(list);
-    }
-
-    /**
-     * 修改专业课程数量
-     * @param majorId
-     * @param num
-     */
-    @Override
-    public void modifyCourseNum(String majorId, int num) {
-        MajorDO majorDO = getById(majorId);
-        majorDO.setCourseNum(majorDO.getCourseNum() + num);
-        saveOrUpdate(majorDO);
-    }
 }

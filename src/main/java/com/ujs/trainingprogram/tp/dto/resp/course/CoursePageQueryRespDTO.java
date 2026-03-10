@@ -1,7 +1,7 @@
 package com.ujs.trainingprogram.tp.dto.resp.course;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.ujs.trainingprogram.tp.common.enums.CourseTypeEnum;
+import com.ujs.trainingprogram.tp.common.enums.CourseNatureEnum;
 import lombok.Data;
 
 /**
@@ -30,11 +30,16 @@ public class CoursePageQueryRespDTO {
      */
     @JsonProperty("courseNatureDesc")
     public String getCourseNatureDesc() {
-        return CourseTypeEnum.getDictName(this.courseNature);
+        return CourseNatureEnum.findValueByType(this.courseNature);
     }
 
     /**
      * 课程名称
      */
     private String courseName;
+
+    /**
+     * 开课学院
+     */
+    private String collegeName;
 }

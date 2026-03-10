@@ -7,6 +7,7 @@ import com.ujs.trainingprogram.tp.common.exception.AbstractException;
 import com.ujs.trainingprogram.tp.common.result.Result;
 import io.micrometer.common.util.StringUtils;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.io.IOException;
 import java.util.Optional;
 
 /**
@@ -46,7 +48,13 @@ public class GlobalExceptionHandler {
      * 拦截应用内抛出的异常
      */
     @ExceptionHandler(value = {AbstractException.class})
-    public Result abstractException(HttpServletRequest request, AbstractException ex) {
+    public Result abstractException(HttpServletRequest request, HttpServletResponse response, AbstractException ex) {
+        String contentType = response.getContentType();
+        if (contentType != null && contentType.contains("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")) {
+            handleExcelException(response, ex);
+            return null;
+        }
+
         if (ex.getCause() != null) {
             log.error("[{}] {} [ex] {}", request.getMethod(), request.getRequestURL().toString(), ex, ex.getCause());
             return Results.failure(ex);
@@ -95,7 +103,17 @@ public class GlobalExceptionHandler {
      * 拦截未捕获的异常
      */
     @ExceptionHandler(value = Throwable.class)
-    public Result defaultErrorHandler(HttpServletRequest request, Throwable throwable) {
+    public Result defaultErrorHandler(HttpServletRequest request, HttpServletResponse response, Throwable throwable) {
+        String contentType = response.getContentType();
+        if (contentType != null && contentType.contains("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")) {
+            handleExcelException(response, throwable);
+            return null;
+        }
+
+        if (response.isCommitted()) {
+            log.error("[{}] {} [ex] 响应已提交，无法写入错误信息：{}", request.getMethod(), request.getRequestURL().toString(), throwable.getMessage());
+            return null;
+        }
         log.error("[{}] {} ", request.getMethod(), getUrl(request), throwable);
         return Results.failure();
     }
@@ -105,5 +123,24 @@ public class GlobalExceptionHandler {
             return request.getRequestURI();
         }
         return request.getRequestURI() + "?" + request.getQueryString();
+    }
+
+    /**
+     * 处理 Excel 导出时的异常
+     */
+    private void handleExcelException(HttpServletResponse response, Throwable ex) {
+        log.error("导出 Excel 时发生异常：{}", ex.getMessage(), ex);
+        // 如果响应还未提交，重置响应并返回 JSON 错误
+        if (!response.isCommitted()) {
+            response.reset();
+            response.setContentType("application/json");
+            response.setCharacterEncoding("UTF-8");
+            try {
+                String errorMessage = "{\"code\":\"error\",\"message\":\"" + ex.getMessage() + "\"}";
+                response.getWriter().write(errorMessage);
+            } catch (IOException e) {
+                log.error("写入错误响应失败", e);
+            }
+        }
     }
 }

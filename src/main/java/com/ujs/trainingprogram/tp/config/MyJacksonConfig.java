@@ -24,7 +24,7 @@ public class MyJacksonConfig {
         mapper.enable(SerializationFeature.WRITE_ENUMS_USING_TO_STRING);
         mapper.setTimeZone(TimeZone.getTimeZone("GMT+8"));
 
-        mapper.setSerializationInclusion(JsonInclude.Include.ALWAYS);
+        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         mapper.getSerializerProvider()
                 .setNullValueSerializer(new JsonSerializer<Object>() {
                     @Override

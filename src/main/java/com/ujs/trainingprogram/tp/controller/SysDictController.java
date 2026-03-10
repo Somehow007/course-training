@@ -1,6 +1,8 @@
 package com.ujs.trainingprogram.tp.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.ujs.trainingprogram.tp.authentication.RequireAuthentication;
+import com.ujs.trainingprogram.tp.common.constant.AuthConstant;
 import com.ujs.trainingprogram.tp.common.result.Result;
 import com.ujs.trainingprogram.tp.common.web.Results;
 import com.ujs.trainingprogram.tp.dto.req.sysdict.SysDictCreateReqDTO;
@@ -24,6 +26,7 @@ public class SysDictController {
 
     private final SysDictService sysDictService;
 
+    @RequireAuthentication(AuthConstant.ACADEMIC_AFFAIRS_STAFF)
     @Operation(summary = "创建系统字典")
     @PostMapping("/api/sys-dict/mainAdmin/create")
     public Result<Void> createSysDict(@RequestBody SysDictCreateReqDTO requestParam) {
@@ -31,6 +34,7 @@ public class SysDictController {
         return Results.success();
     }
 
+    @RequireAuthentication(AuthConstant.ACADEMIC_AFFAIRS_STAFF)
     @Operation(summary = "删除系统字典")
     @DeleteMapping("/api/sys-dict/mainAdmin/delete/{id}")
     public Result<Void> deleteSysDict(@PathVariable String id) {
@@ -38,6 +42,7 @@ public class SysDictController {
         return Results.success();
     }
 
+    @RequireAuthentication(AuthConstant.ACADEMIC_AFFAIRS_STAFF)
     @Operation(summary = "分页查询系统字典")
     @GetMapping("/api/sys-dict/page")
     public Result<IPage<SysDictPageQueryRespDTO>> pageQuerySysDict(SysDictPageQueryReqDTO requestParam) {

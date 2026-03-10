@@ -37,7 +37,7 @@ public class MajorDO extends BaseDO {
     /**
      * 专业分类（0:工学 1:理学 2:文科）
      */
-    private Integer categoryId;
+    private Integer category;
 
     /**
      * 专业名
@@ -46,6 +46,7 @@ public class MajorDO extends BaseDO {
 
     /**
      * 课程总数
+     * todo 因选课问题，每个专业每个人的课程数会有差异，因此此字段可删除
      */
     private Integer courseNum;
 }

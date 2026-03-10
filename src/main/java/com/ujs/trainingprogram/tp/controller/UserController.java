@@ -33,6 +33,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.SecureRandom;
@@ -51,7 +52,6 @@ import java.util.Objects;
 public class UserController {
 
     private final UserService userService;
-    private final CollegeService collegeService;
     private final AuthenticationManager authenticationManager;
 
     @Operation(summary = "分页查询用户数据")
@@ -77,7 +77,11 @@ public class UserController {
                     requestParam.getUsername(),
                     requestParam.getPassword()));
             SecurityContextHolder.getContext().setAuthentication(authentication);
-
+            // 保存到 Session 中
+            request.getSession().setAttribute(
+                    HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+                    SecurityContextHolder.getContext()
+            );
 
             SecurityUserDetails userDetails = (SecurityUserDetails) authentication.getPrincipal();
             UserDO userDO = userDetails.getUserDO();

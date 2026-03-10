@@ -30,6 +30,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * 课程业务逻辑实现层
@@ -39,9 +40,6 @@ import java.util.Optional;
 public class CourseServiceImpl extends ServiceImpl<CourseMapper, CourseDO> implements CourseService {
 
     private final CollegeService collegeService;
-
-    private final MajorService majorService;
-    private final MajorMapper majorMapper;
 
     @Override
     public IPage<CoursePageQueryRespDTO> pageQueryCourse(CoursePageQueryReqDTO requestParam) {
@@ -60,15 +58,23 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, CourseDO> imple
         try {
             baseMapper.insert(courseDO);
         } catch (DuplicateKeyException ex) {
-            throw new ClientException(ex.getMessage());
+            throw new ClientException(String.format("创建失败，课程名称不能重复: %s", requestParam.getCourseName()));
         }
 
     }
 
     @Override
-    public void deleteCourse(Long id) {
+    public void deleteCourse(List<String> ids) {
+        if (ids == null || ids.isEmpty()) {
+            throw new ClientException("删除失败：课程 ID 列表不能为空");
+        }
+
+        List<Long> longIds = ids.stream()
+                .map(Long::parseLong)
+                .toList();
+
         LambdaUpdateWrapper<CourseDO> updateWrapper = Wrappers.lambdaUpdate(CourseDO.class)
-                .eq(CourseDO::getId, id)
+                .in(CourseDO::getId, longIds)
                 .eq(CourseDO::getDelFlag, 0)
                 .set(CourseDO::getDelFlag, 1);
         baseMapper.update(updateWrapper);
@@ -80,6 +86,7 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, CourseDO> imple
                 .eq(CourseDO::getId, requestParam.getId())
                 .set(StrUtil.isNotBlank(requestParam.getCourseName()), CourseDO::getCourseName, requestParam.getCourseName())
                 .set(StrUtil.isNotBlank(requestParam.getDictId()), CourseDO::getDictId, requestParam.getDictId())
+                .set(StrUtil.isNotBlank(requestParam.getCollegeId()), CourseDO::getCollegeId, requestParam.getCollegeId())
                 .set(StrUtil.isNotBlank(String.valueOf(requestParam.getCourseNature())), CourseDO::getCourseNature, requestParam.getCourseNature());
 
         int update = baseMapper.update(updateWrapper);
@@ -89,60 +96,10 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, CourseDO> imple
     }
 
     @Override
-    public List<CourseDO> selectCourseByCodeAndYear(String code, String year) {
-        QueryWrapper<CourseDO> wrapper = new QueryWrapper<>();
-        wrapper.eq("code", code);
-        wrapper.eq("year", year);
-        return getBaseMapper().selectList(wrapper);
+    public List<CourseDO> listCourses() {
+        LambdaQueryWrapper<CourseDO> queryWrapper = Wrappers.lambdaQuery(CourseDO.class)
+                .eq(CourseDO::getDelFlag, 0);
+        return baseMapper.selectList(queryWrapper);
     }
 
-    /**
-     * 学院课程总数
-     *
-     * @param collegeId
-     * @return
-     */
-    @Override
-    public Integer selectCountWithCollege(String collegeId) {
-        QueryWrapper<CourseDO> wrapper = new QueryWrapper<>();
-        wrapper.eq("college_id", collegeId);
-        return getBaseMapper().selectCount(wrapper).intValue();
-    }
-
-    /**
-     * 专业课程总数
-     *
-     * @param majorId
-     * @return
-     */
-    @Override
-    public Integer selectCountWithMajor(String majorId) {
-        QueryWrapper<CourseDO> wrapper = new QueryWrapper<>();
-        wrapper.eq("major_id", majorId);
-        return getBaseMapper().selectCount(wrapper).intValue();
-    }
-
-    @Override
-    public ResultData selectWithWrapper(long cur, long size, QueryWrapper<CourseDO> wrapper) {
-        Page<CourseDO> page = new Page<>(cur, size);
-        Page<CourseDO> coursePage = getBaseMapper().selectPage(page, wrapper);
-        ResultData resultData = new ResultData();
-
-        return resultData;
-    }
-
-    @Override
-    public ResultData selectSimple(String code, String year, String state, String collegeId) {
-        return null;
-    }
-
-    @Override
-    public ResultData selectWithCourseId(long cur, long size, Integer courseId) {
-        return null;
-    }
-
-    @Override
-    public List<CourseDO> selectWithYear(String year) {
-        return List.of();
-    }
 }
