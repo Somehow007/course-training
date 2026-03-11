@@ -226,6 +226,7 @@ public class TrainingProgramServiceImpl extends ServiceImpl<TrainingProgramMappe
                         BeanUtil.copyProperties(data, excelDTO);
                         // 处理总学时字段的导出
                         buildTotalTime(data, excelDTO);
+                        excelDTO.setElectiveCreditRequirement(data.getRequiredElective() != null ? data.getRequiredElective().toString() : "");
                         return excelDTO;
                     })
                     .toList();
