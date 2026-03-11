@@ -49,7 +49,6 @@ public class CourseExclusivityServiceImpl extends ServiceImpl<CourseExclusivityM
         }
         CourseExclusivityDO courseExclusivityDO = BeanUtil.toBean(requestParam, CourseExclusivityDO.class);
         courseExclusivityDO.setId(IdUtil.getSnowflakeNextId());
-        courseExclusivityDO.setVersion(1);
         baseMapper.insert(courseExclusivityDO);
 
         return courseExclusivityDO.getId();
@@ -183,5 +182,10 @@ public class CourseExclusivityServiceImpl extends ServiceImpl<CourseExclusivityM
                 .eq(CourseExclusivityDO::getTrainingProgramId, id)
                 .eq(CourseExclusivityDO::getDelFlag, 0);
         return baseMapper.selectOne(queryWrapper);
+    }
+
+    @Override
+    public List<String> getElectiveGroupCode(String id) {
+        return List.of();
     }
 }

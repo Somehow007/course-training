@@ -536,6 +536,7 @@ public class TrainingProgramServiceImpl extends ServiceImpl<TrainingProgramMappe
             if (!Objects.isNull(courseExclusivityDO)) {
                 // 存在的话，将详情表全部软删除，并获取版本号
                 exclusivityId = courseExclusivityDO.getId();
+                courseExclusivityService.deleteCourseExclusivity(List.of(exclusivityId.toString()));
                 courseExclusivityService.deleteCourseExclusivityDetail(List.of(exclusivityId.toString()));
             }
             CourseExclusivitySaveReqDTO courseExclusivitySaveReqDTO = CourseExclusivitySaveReqDTO.builder()
