@@ -525,6 +525,16 @@ public class TrainingProgramServiceImpl extends ServiceImpl<TrainingProgramMappe
         Map<String, List<TrainingProgramExcelTemplate>> groupMap = groupRequiredList.stream()
                 .collect(Collectors.groupingBy(TrainingProgramExcelTemplate::getElectiveGroupCode));
 
+        // 创建分组，先检查是否存在
+        CourseExclusivityDO courseExclusivityDO = courseExclusivityService.selectByTpId(tpId.toString());
+        Long exclusivityId;
+        if (!Objects.isNull(courseExclusivityDO)) {
+            // 存在的话，将详情表全部软删除，并获取版本号
+            exclusivityId = courseExclusivityDO.getId();
+            courseExclusivityService.deleteCourseExclusivity(List.of(exclusivityId.toString()));
+            courseExclusivityService.deleteCourseExclusivityDetail(List.of(exclusivityId.toString()));
+        }
+
         for (Map.Entry<String, List<TrainingProgramExcelTemplate>> entry : groupMap.entrySet()) {
             String groupCode = entry.getKey();
             List<TrainingProgramExcelTemplate> items = entry.getValue();
