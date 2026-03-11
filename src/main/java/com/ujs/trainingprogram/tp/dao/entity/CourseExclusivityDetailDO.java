@@ -9,14 +9,14 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * 培养计划表实体
+ * 选修课程分组数据库详情实体
  */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("training_program")
-public class TrainingProgramDO extends BaseDO {
+@TableName(value = "course_exclusivity_detail")
+public class CourseExclusivityDetailDO extends BaseDO {
 
     /**
      * id
@@ -25,27 +25,12 @@ public class TrainingProgramDO extends BaseDO {
     private Long id;
 
     /**
-     * 培养计划名称
+     * 选修课程分组 Id
      */
-    private String name;
+    private Long exclusivityId;
 
     /**
-     * 专业id
+     * 课程 Id
      */
-    private Long majorId;
-
-    /**
-     * 学院id
-     */
-    private Long collegeId;
-
-    /**
-     * 年份
-     */
-    private Integer year;
-
-    /**
-     * 描述
-     */
-    private String description;
+    private Long courseId;
 }

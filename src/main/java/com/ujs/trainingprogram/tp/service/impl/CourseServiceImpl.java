@@ -11,6 +11,7 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.baomidou.mybatisplus.extension.toolkit.SqlHelper;
+import com.ujs.trainingprogram.tp.common.constant.RedisKeyConstant;
 import com.ujs.trainingprogram.tp.common.exception.ClientException;
 import com.ujs.trainingprogram.tp.common.result.ResultData;
 import com.ujs.trainingprogram.tp.dao.mapper.CourseMapper;
@@ -25,11 +26,14 @@ import com.ujs.trainingprogram.tp.service.CourseService;
 import com.ujs.trainingprogram.tp.service.MajorService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -40,6 +44,7 @@ import java.util.stream.Collectors;
 public class CourseServiceImpl extends ServiceImpl<CourseMapper, CourseDO> implements CourseService {
 
     private final CollegeService collegeService;
+    private final StringRedisTemplate stringRedisTemplate;
 
     @Override
     public IPage<CoursePageQueryRespDTO> pageQueryCourse(CoursePageQueryReqDTO requestParam) {
@@ -57,6 +62,14 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, CourseDO> imple
 
         try {
             baseMapper.insert(courseDO);
+            if (StrUtil.isNotBlank(courseDO.getCourseName()) && courseDO.getId() != null) {
+                stringRedisTemplate.opsForHash().put(
+                        RedisKeyConstant.COURSE_NAME_ID_KEY,
+                        courseDO.getCourseName(),
+                        courseDO.getId().toString()
+                );
+                stringRedisTemplate.expire(RedisKeyConstant.COURSE_NAME_ID_KEY, 7, TimeUnit.DAYS);
+            }
         } catch (DuplicateKeyException ex) {
             throw new ClientException(String.format("创建失败，课程名称不能重复: %s", requestParam.getCourseName()));
         }
@@ -77,6 +90,15 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, CourseDO> imple
                 .in(CourseDO::getId, longIds)
                 .eq(CourseDO::getDelFlag, 0)
                 .set(CourseDO::getDelFlag, 1);
+        Map<Object, Object> entries = stringRedisTemplate.opsForHash().entries(RedisKeyConstant.COURSE_NAME_ID_KEY);
+        ids.forEach(each -> {
+            for (Map.Entry<Object, Object> entry : entries.entrySet()) {
+                if (entry.getValue() != null && entry.getValue().toString().equals(each)) {
+                    stringRedisTemplate.opsForHash().delete(RedisKeyConstant.COURSE_NAME_ID_KEY, entry.getKey().toString());
+                }
+            }
+        });
+
         baseMapper.update(updateWrapper);
     }
 
@@ -88,10 +110,21 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, CourseDO> imple
                 .set(StrUtil.isNotBlank(requestParam.getDictId()), CourseDO::getDictId, requestParam.getDictId())
                 .set(StrUtil.isNotBlank(requestParam.getCollegeId()), CourseDO::getCollegeId, requestParam.getCollegeId())
                 .set(StrUtil.isNotBlank(String.valueOf(requestParam.getCourseNature())), CourseDO::getCourseNature, requestParam.getCourseNature());
-
-        int update = baseMapper.update(updateWrapper);
-        if (!SqlHelper.retBool(update)) {
-            throw new ClientException("更新课程信息失败：课程不存在");
+        if (StrUtil.isNotBlank(requestParam.getCourseName())) {
+            String oldCourseName = getOldCourseName(requestParam.getId());
+            if (StrUtil.isNotBlank(oldCourseName) && !oldCourseName.equals(requestParam.getCourseName())) {
+                stringRedisTemplate.opsForHash().delete(RedisKeyConstant.COURSE_NAME_ID_KEY, oldCourseName);
+            }
+            stringRedisTemplate.opsForHash().put(
+                    RedisKeyConstant.COURSE_NAME_ID_KEY,
+                    requestParam.getCourseName(),
+                    requestParam.getId()
+            );
+            stringRedisTemplate.expire(RedisKeyConstant.COURSE_NAME_ID_KEY, 7, java.util.concurrent.TimeUnit.DAYS);
+            int update = baseMapper.update(updateWrapper);
+            if (!SqlHelper.retBool(update)) {
+                throw new ClientException("更新课程信息失败：课程不存在");
+            }
         }
     }
 
@@ -101,5 +134,19 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, CourseDO> imple
                 .eq(CourseDO::getDelFlag, 0);
         return baseMapper.selectList(queryWrapper);
     }
+
+    /**
+     * 从缓存中获取旧的课程名称（用于更新时删除旧记录）
+     */
+    private String getOldCourseName(String courseId) {
+        Map<Object, Object> entries = stringRedisTemplate.opsForHash().entries(RedisKeyConstant.COURSE_NAME_ID_KEY);
+        for (Map.Entry<Object, Object> entry : entries.entrySet()) {
+            if (entry.getValue() != null && entry.getValue().toString().equals(courseId)) {
+                return entry.getKey().toString();
+            }
+        }
+        return null;
+    }
+
 
 }

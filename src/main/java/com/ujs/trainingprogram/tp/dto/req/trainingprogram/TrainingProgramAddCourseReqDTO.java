@@ -1,12 +1,14 @@
 package com.ujs.trainingprogram.tp.dto.req.trainingprogram;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Builder;
 import lombok.Data;
 
 /**
  * 为培养计划添加课程请求体
  */
 @Data
+@Builder
 @Schema(description = "为培养计划添加课程请求体")
 public class TrainingProgramAddCourseReqDTO {
 
@@ -105,4 +107,10 @@ public class TrainingProgramAddCourseReqDTO {
      */
     @Schema(description = "备注", example = "")
     private String remark;
+
+    /**
+     * 版本号
+     */
+    @Schema(description = "版本号", example = "")
+    private String version;
 }

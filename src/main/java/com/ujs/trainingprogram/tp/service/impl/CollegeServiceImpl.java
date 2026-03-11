@@ -13,6 +13,7 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.baomidou.mybatisplus.extension.toolkit.SqlHelper;
+import com.ujs.trainingprogram.tp.common.constant.RedisKeyConstant;
 import com.ujs.trainingprogram.tp.common.exception.ClientException;
 import com.ujs.trainingprogram.tp.common.exception.ServiceException;
 import com.ujs.trainingprogram.tp.dao.mapper.CollegeMapper;
@@ -28,10 +29,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RedissonClient;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -42,12 +45,22 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CollegeServiceImpl extends ServiceImpl<CollegeMapper, CollegeDO> implements CollegeService {
 
+    private final StringRedisTemplate stringRedisTemplate;
+
     @Override
     public void createCollege(CollegeSaveReqDTO requestParam) {
         CollegeDO collegeDO = BeanUtil.toBean(requestParam, CollegeDO.class);
         collegeDO.setId(IdUtil.getSnowflakeNextId());
         try {
             baseMapper.insert(collegeDO);
+            if (StrUtil.isNotBlank(collegeDO.getCollegeName()) && collegeDO.getId() != null) {
+                stringRedisTemplate.opsForHash().put(
+                        RedisKeyConstant.COLLEGE_ID_NAME_CACHE_KEY,
+                        collegeDO.getCollegeName(),
+                        collegeDO.getId().toString()
+                );
+                stringRedisTemplate.expire(RedisKeyConstant.COLLEGE_ID_NAME_CACHE_KEY, 7, TimeUnit.DAYS);
+            }
         } catch (DuplicateKeyException ex) {
             throw new ServiceException(String.format("学院名称: %s 重复创建", requestParam.getCollegeName()));
         }

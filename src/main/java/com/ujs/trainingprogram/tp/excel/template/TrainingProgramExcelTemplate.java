@@ -93,7 +93,7 @@ public class TrainingProgramExcelTemplate {
      * 选修要求学分
      */
     @ExcelProperty(value = "选修要求学分")
-    private Integer requiredElective;
+    private String electiveCreditRequirement;
 
     /**
      * 备注
@@ -107,4 +107,22 @@ public class TrainingProgramExcelTemplate {
      */
     @ExcelProperty(value = "年份")
     private Integer year;
+
+    /**
+     * Excel行号（1-based，EasyExcel提供）
+     */
+    @ExcelIgnore
+    private Integer excelRowIndex;
+
+    /**
+     * 分组编码
+     */
+    @ExcelIgnore
+    private String electiveGroupCode;
+
+    /**
+     * 要求学分（数值）
+     */
+    @ExcelIgnore
+    private Double electiveRequiredCredits;
 }

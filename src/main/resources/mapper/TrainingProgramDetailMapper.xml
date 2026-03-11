@@ -55,5 +55,29 @@
         ORDER BY t.create_time DESC
     </select>
 
+    <!-- 批量插入培养计划详情 -->
+    <insert id="insertBatch" parameterType="java.util.List">
+        INSERT INTO training_program_detail (
+        id, training_program_id, course_id, course_nature, course_name,
+        college_id, major_id, total_credits, total_hours, total_weeks,
+        hours_unit, hour_teach, hour_practice, hour_operation, hour_outside,
+        hour_week, required_elective, term, remark, version,
+        create_time, update_time, del_flag
+        )
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.id}, #{item.trainingProgramId}, #{item.courseId},
+            #{item.courseNature}, #{item.courseName},
+            #{item.collegeId}, #{item.majorId}, #{item.totalCredits},
+            #{item.totalHours}, #{item.totalWeeks},
+            #{item.hoursUnit}, #{item.hourTeach}, #{item.hourPractice},
+            #{item.hourOperation}, #{item.hourOutside},
+            #{item.hourWeek}, #{item.requiredElective}, #{item.term},
+            #{item.remark}, #{item.version},
+            NOW(), NOW(), 0
+            )
+        </foreach>
+    </insert>
 
 </mapper>

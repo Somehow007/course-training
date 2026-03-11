@@ -18,25 +18,30 @@ import com.ujs.trainingprogram.tp.dao.mapper.CourseMapper;
 import com.ujs.trainingprogram.tp.dao.mapper.MajorMapper;
 import com.ujs.trainingprogram.tp.dao.mapper.TrainingProgramDetailMapper;
 import com.ujs.trainingprogram.tp.dao.mapper.TrainingProgramMapper;
-import com.ujs.trainingprogram.tp.dto.req.trainingprogram.TrainingProgramAddCourseReqDTO;
-import com.ujs.trainingprogram.tp.dto.req.trainingprogram.TrainingProgramCreateReqDTO;
-import com.ujs.trainingprogram.tp.dto.req.trainingprogram.TrainingProgramUpdateCourseReqDTO;
-import com.ujs.trainingprogram.tp.dto.req.trainingprogram.TrainingProgramUpdateReqDTO;
+import com.ujs.trainingprogram.tp.dto.req.courseexclusivity.CourseExclusivityAddCourseReqDTO;
+import com.ujs.trainingprogram.tp.dto.req.courseexclusivity.CourseExclusivitySaveReqDTO;
+import com.ujs.trainingprogram.tp.dto.req.trainingprogram.*;
 import com.ujs.trainingprogram.tp.dto.resp.trainingprogram.TrainingProgramDetailSelectRespDTO;
 import com.ujs.trainingprogram.tp.dto.resp.trainingprogram.TrainingProgramSelectRespDTO;
+import com.ujs.trainingprogram.tp.excel.model.ExcelMergeRegion;
 import com.ujs.trainingprogram.tp.excel.template.TrainingProgramExcelTemplate;
-import com.ujs.trainingprogram.tp.service.CollegeService;
-import com.ujs.trainingprogram.tp.service.CourseService;
-import com.ujs.trainingprogram.tp.service.SysDictService;
-import com.ujs.trainingprogram.tp.service.TrainingProgramService;
+import com.ujs.trainingprogram.tp.service.*;
 import com.ujs.trainingprogram.tp.utils.LoadCacheUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.util.CellRangeAddress;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.servlet.http.HttpServletResponse;
@@ -44,13 +49,11 @@ import com.alibaba.excel.EasyExcel;
 import com.ujs.trainingprogram.tp.excel.listener.ReadTrainingProgramListener;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
@@ -73,6 +76,8 @@ public class TrainingProgramServiceImpl extends ServiceImpl<TrainingProgramMappe
     private final StringRedisTemplate stringRedisTemplate;
 
     private static final String TP_NAME_SUFFIX = "%s专业课程设置及学时分配表";
+    private final CourseExclusivityService courseExclusivityService;
+    private final TransactionTemplate transactionTemplate;
 
 
     @Override
@@ -247,61 +252,91 @@ public class TrainingProgramServiceImpl extends ServiceImpl<TrainingProgramMappe
 
     @Override
     public void importTrainingProgramFromExcel(MultipartFile file, String collegeId, String majorId) {
-        try {
-            // 1. 首先查询数据库，找到要导入的培养计划
-            collegeId = removeLeadingComma(collegeId);
-            majorId = removeLeadingComma(majorId);
-            TrainingProgramSelectRespDTO trainingProgramSelectRespDTO = selectTrainingProgramByCollegeAndMajor(collegeId, majorId);
+
+        // 1. 检查缓存，若没有，则预加载数据到缓存中，避免逐条查询数据库
+        loadCacheUtils.loadCollegeCache();
+        loadCacheUtils.loadSysDictCache();
+        loadCacheUtils.loadCourseCache();
+
+        // 从缓存获取学院 ID
+        collegeId = removeLeadingComma(collegeId);
+        majorId = removeLeadingComma(majorId);
+        List<Object> collegeValueStr = stringRedisTemplate.opsForHash()
+                .values(RedisKeyConstant.COLLEGE_ID_NAME_CACHE_KEY);
+        if (!collegeValueStr.contains(collegeId)) {
+            throw new ClientException("学院不存在：" + collegeId + "，请先添加该学院");
+        }
+
+        // 2. 首先查询数据库，找到要导入的培养计划
+        TrainingProgramSelectRespDTO trainingProgramSelectRespDTO = selectTrainingProgramByCollegeAndMajor(collegeId, majorId);
+
+
+        String finalCollegeId = collegeId;
+        String finalMajorId = majorId;
+        transactionTemplate.executeWithoutResult(status -> {
 
             Long tpId;
             int version;
-            MajorDO majorDO = majorMapper.selectById(majorId);
+            MajorDO majorDO = majorMapper.selectById(finalMajorId);
             if (Objects.isNull(majorDO)) {
-                log.warn("导入失败，该专业不存在: " + majorId);
+                log.warn("导入失败，该专业不存在: " + finalMajorId);
                 throw new ClientException("导入失败，该专业不存在。");
             }
             String fileName = String.format(majorDO.getMajorName(), "专业课程设置及学时分配表");
-            if (trainingProgramSelectRespDTO == null
-                    || trainingProgramSelectRespDTO.getId() == null
-                    || trainingProgramSelectRespDTO.getId() == 0L) {
-                // 不存在，就新创建
-                TrainingProgramDO newTrainingProgram = TrainingProgramDO.builder()
-                        .name(fileName)
-                        .collegeId(Long.parseLong(collegeId))
-                        .majorId(Long.parseLong(majorId))
-                        .year(LocalDateTime.now().getYear())
-                        .build();
+            try {
+                if (trainingProgramSelectRespDTO == null
+                        || trainingProgramSelectRespDTO.getId() == null
+                        || trainingProgramSelectRespDTO.getId() == 0L) {
+                    // 不存在，就新创建
+                    TrainingProgramDO newTrainingProgram = TrainingProgramDO.builder()
+                            .name(fileName)
+                            .collegeId(Long.parseLong(finalCollegeId))
+                            .majorId(Long.parseLong(finalMajorId))
+                            .year(LocalDateTime.now().getYear())
+                            .build();
 
-                // 获取培养计划Id，后续直接组培养计划表就行
-                tpId = createTrainingProgram(newTrainingProgram);
-                version = 1;
-            } else {
-                // 如果存在，获取已有的培养计划 ID，并获取其当前版本号
-                tpId = trainingProgramSelectRespDTO.getId();
-                List<TrainingProgramDetailSelectRespDTO> originData = selectTrainingProgramDetail(tpId.toString());
-                if (CollUtil.isEmpty(originData) || originData.get(0).getVersion() == null) {
+                    // 获取培养计划Id，后续直接组培养计划表就行
+                    tpId = createTrainingProgram(newTrainingProgram);
                     version = 1;
                 } else {
-                    // 2. 将原培养计划的详细内容全部软删除，并更新版本；后续导入 Excel 中的版本
-                    deleteTrainingProgramDetails(tpId.toString());
-                    version = originData.get(0).getVersion() != null ? originData.get(0).getVersion() + 1 : 1;
+                    // 如果存在，获取已有的培养计划 ID，并获取其当前版本号
+                    tpId = trainingProgramSelectRespDTO.getId();
+                    List<TrainingProgramDetailSelectRespDTO> originData = selectTrainingProgramDetail(tpId.toString());
+                    if (CollUtil.isEmpty(originData) || originData.get(0).getVersion() == null) {
+                        version = 1;
+                    } else {
+                        // 2. 将原培养计划的详细内容全部软删除，并更新版本；后续导入 Excel 中的版本
+                        deleteTrainingProgramDetails(tpId.toString());
+                        version = originData.get(0).getVersion() != null ? originData.get(0).getVersion() + 1 : 1;
+                    }
                 }
+
+                // 预读合并区域信息
+                Map<Integer, ExcelMergeRegion> mergeRegionMap = readMergeRegions(file);
+
+                // 3. 使用自定义监听器读取Excel数据
+                ReadTrainingProgramListener listener = new ReadTrainingProgramListener(
+                        this,
+                        Long.parseLong(finalMajorId),
+                        tpId,
+                        version,
+                        mergeRegionMap);
+                EasyExcel.read(file.getInputStream(), TrainingProgramExcelTemplate.class, listener)
+                        .sheet()
+                        .doRead();
+
+            } catch (Exception ex) {
+                status.setRollbackOnly();
+                if (ex instanceof IOException) {
+                    throw new ClientException("导入文件失败");
+                }
+                if (ex instanceof ClientException) {
+                    throw (ClientException) ex;
+                }
+                throw new ClientException("导入 Excel 失败：" + ex.getMessage());
             }
+        });
 
-            // 3. 检查缓存，若没有，则预加载数据到缓存中，避免逐条查询数据库
-            loadCacheUtils.loadCollegeCache();
-            loadCacheUtils.loadSysDictCache();
-            loadCacheUtils.loadCourseCache();
-
-            // 3. 使用自定义监听器读取Excel数据
-            ReadTrainingProgramListener listener = new ReadTrainingProgramListener(this, Long.parseLong(majorId), tpId, version);
-            EasyExcel.read(file.getInputStream(), TrainingProgramExcelTemplate.class, listener)
-                    .sheet()
-                    .doRead();
-
-        } catch (IOException e) {
-            throw new ClientException("导入Excel失败: " + e.getMessage());
-        }
     }
     
     @Override
@@ -322,42 +357,102 @@ public class TrainingProgramServiceImpl extends ServiceImpl<TrainingProgramMappe
     }
     
     @Override
-    public void batchSaveTrainingProgramDetails(List<TrainingProgramExcelTemplate> dataList, Long tpId, Long majorId, Integer version) {
+    @Transactional(rollbackFor = Exception.class)
+    public void batchSaveTrainingProgramDetailsFromExcel(List<TrainingProgramExcelTemplate> dataList, Long tpId, Long majorId, Integer version) {
+
+        // 检查数据中的课程与学院是否都存在
+        judgeCourseAndCourseIsExist(dataList);
+        // 分组的课程和没有分组的课程
+        List<TrainingProgramExcelTemplate> groupRequiredList = new ArrayList<>();
+
         for (TrainingProgramExcelTemplate data : dataList) {
-            try {
-
-                // 将Excel DTO转换为数据库实体
-                TrainingProgramDetailDO detailDO = TrainingProgramDetailDO.builder()
-                        .id(IdUtil.getSnowflakeNextId())
-                        .trainingProgramId(tpId)
-                        // todo 缓存中如果不存在，则需要单独拎出来查数据库（可以考虑布隆过滤器过滤），通知用户
-                        // todo 有些数据，比如课程不存在，需要告知用户是否添加进数据库？
-                        .collegeId(Long.parseLong(Objects.requireNonNull(Objects.requireNonNull(stringRedisTemplate.opsForHash().get(RedisKeyConstant.COLLEGE_ID_NAME_CACHE_KEY, data.getCollegeName())).toString())))
-                        .majorId(majorId)
-                        .courseId(Long.parseLong(Objects.requireNonNull(Objects.requireNonNull(stringRedisTemplate.opsForHash().get(RedisKeyConstant.COURSE_NAME_ID_KEY, data.getCourseName())).toString())))
-                        .courseName(data.getCourseName())
-                        .courseNature(data.getCourseNature())
-                        .term(data.getTerm())
-                        .hourOutside(data.getHourOutside())
-                        .hourPractice(data.getHourPractice())
-                        .hourTeach(data.getHourTeach())
-                        .hourWeek(data.getHourWeek())
-                        .hourOperation(data.getHourOperation())
-                        .remark(data.getRemark())
-                        .requiredElective(data.getRequiredElective())
-                        .totalCredits(data.getTotalCredits())
-                        .version(version)
-                        .build();
-
-                // 处理总学时字段
-                // 保存到数据库
-                trainingProgramDetailMapper.insert(parseTimeUnits(detailDO, data.getTotalHours()));
-            } catch (Exception e) {
-                log.error("处理Excel记录时发生错误: {}", e.getMessage(), e);
-                throw new ClientException("处理Excel记录时发生错误: " + e.getMessage());
+            if (StrUtil.isNotBlank(data.getElectiveCreditRequirement())) {
+                groupRequiredList.add(data);
             }
         }
+
+        if (CollUtil.isNotEmpty(groupRequiredList)) {
+            handleGroupedCourses(groupRequiredList, tpId, version);
+        }
+
+        List<TrainingProgramAddCourseFromExcelReqDTO> requestParams = convertExcelToDTOs(dataList, tpId, majorId);
+        batchSaveTrainingProgramDetails(requestParams, version);
+
     }
+
+    @Override
+    public void batchSaveTrainingProgramDetails(List<TrainingProgramAddCourseFromExcelReqDTO> requestParams, Integer version) {
+        if (CollUtil.isEmpty(requestParams)) {
+            throw new ClientException("批量添加失败：参数列表不能为空");
+        }
+
+        // 1. 提取所有的 trainingProgramId、courseId、collegeId、majorId
+        Set<String> courseIds = new HashSet<>();
+
+        for(TrainingProgramAddCourseFromExcelReqDTO param : requestParams) {
+            if (StrUtil.isBlank(param.getTrainingProgramId()) || StrUtil.isBlank(param.getCourseId().toString())) {
+                throw new ClientException("批量添加失败：培养计划 ID 或课程 ID 为空");
+            }
+            courseIds.add(param.getCourseId().toString());
+        }
+
+        // 2. 批量查询，验证课程是否存在
+        List<CourseDO> courses = courseMapper.selectBatchIds(courseIds);
+        if (courses.size() != courseIds.size()) {
+            Set<String> existingIds = courses.stream()
+                    .map(CourseDO::getId)
+                    .map(String::valueOf)
+                    .collect(Collectors.toSet());
+
+            Set<String> notFoundIds = courseIds.stream()
+                    .filter(id -> !existingIds.contains(id))
+                    .collect(Collectors.toSet());
+
+            throw new ClientException("批量添加失败：以下课程不存在：" + String.join(", ", notFoundIds));
+        }
+
+        // 6. 转换为实体对象列表
+        List<TrainingProgramDetailDO> details = requestParams.stream()
+                .map(param -> {
+//                    CourseDO course = courseMap.get(param.getCourseId());
+//                    if (course == null) {
+//                        throw new ClientException("课程信息未找到：" + param.getCourseId());
+//                    }
+
+                    TrainingProgramDetailDO detailDO = TrainingProgramDetailDO.builder()
+                            .id(IdUtil.getSnowflakeNextId())
+                            .trainingProgramId(Long.parseLong(param.getTrainingProgramId()))
+                            .courseId(param.getCourseId())
+                            .courseNature(param.getCourseNature())  // 从课程中获取课程性质todo 待优化
+                            .courseName(param.getCourseName())      // 从课程中获取课程名称
+                            .collegeId(param.getCollegeId())
+                            .majorId(param.getMajorId())
+                            .totalCredits(param.getTotalCredits())
+                            .hourTeach(param.getHourTeach())
+                            .hourPractice(param.getHourPractice())
+                            .hourOperation(param.getHourOperation())
+                            .hourOutside(param.getHourOutside())
+                            .hourWeek(param.getHourWeek())
+                            .requiredElective(param.getRequiredElective())
+                            .term(param.getTerm())
+                            .remark(param.getRemark())
+                            .version(version != null ? version : 1)
+                            .build();
+                    return parseTimeUnits(detailDO, param.getTotalHours());
+                })
+                .collect(Collectors.toList());
+
+        // 7. 批量插入（使用 MyBatis 原生批量插入）
+        int successCount = trainingProgramDetailMapper.insertBatch(details);
+
+        if (successCount <= 0) {
+            throw new ClientException("批量添加课程至培养计划失败");
+        }
+
+        log.info("批量添加成功，共插入 {} 条记录", successCount);
+
+    }
+
 
     @Override
     public TrainingProgramSelectRespDTO selectTrainingProgramByCollegeAndMajor(String collegeId, String majorId) {
@@ -374,6 +469,94 @@ public class TrainingProgramServiceImpl extends ServiceImpl<TrainingProgramMappe
             return null;
         }
         return BeanUtil.toBean(trainingProgramDO, TrainingProgramSelectRespDTO.class);
+    }
+
+    /**
+     * 将 Excel 数据转换为 DTO 列表
+     */
+    private List<TrainingProgramAddCourseFromExcelReqDTO> convertExcelToDTOs(List<TrainingProgramExcelTemplate> excelData, Long tpId, Long majorId) {
+        List<TrainingProgramAddCourseFromExcelReqDTO> requestParams = new ArrayList<>();
+
+
+        for(TrainingProgramExcelTemplate data: excelData) {
+            // 从缓存获取课程 ID
+            String courseIdStr = (String) stringRedisTemplate.opsForHash()
+                    .get(RedisKeyConstant.COURSE_NAME_ID_KEY, data.getCourseName());
+
+            // 从缓存获取学院 ID
+            String collegeIdStr = "";
+            if (StrUtil.isNotBlank(data.getCollegeName())) {
+                collegeIdStr = (String) stringRedisTemplate.opsForHash()
+                        .get(RedisKeyConstant.COLLEGE_ID_NAME_CACHE_KEY, data.getCollegeName());
+            }
+
+            TrainingProgramAddCourseFromExcelReqDTO dto = TrainingProgramAddCourseFromExcelReqDTO.builder()
+                    .trainingProgramId(tpId.toString())
+                    .courseId(StrUtil.isNotBlank(courseIdStr) ? Long.parseLong(courseIdStr) : null)
+                    .collegeId(StrUtil.isNotBlank(collegeIdStr) ? Long.parseLong(collegeIdStr) : null)
+                    .majorId(majorId)
+                    .courseName(data.getCourseName())
+                    .courseNature(data.getCourseNature())
+                    .totalCredits(data.getTotalCredits())
+                    .hourTeach(data.getHourTeach())
+                    .hourPractice(data.getHourPractice())
+                    .hourOperation(data.getHourOperation())
+                    .hourOutside(data.getHourOutside())
+                    .hourWeek(data.getHourWeek())
+                    .requiredElective(StrUtil.isNotBlank(data.getElectiveCreditRequirement()) ?
+                            Integer.parseInt(data.getElectiveCreditRequirement()) : null)
+                    .term(data.getTerm())
+                    .remark(data.getRemark())
+                    .totalHours(data.getTotalHours())
+                    .build();
+
+            requestParams.add(dto);
+        }
+
+        return requestParams;
+    }
+
+    /**
+     * 处理分组课程
+     */
+    private void handleGroupedCourses(List<TrainingProgramExcelTemplate> groupRequiredList, Long tpId, Integer version) {
+
+        // 按分组编码分组
+        Map<String, List<TrainingProgramExcelTemplate>> groupMap = groupRequiredList.stream()
+                .collect(Collectors.groupingBy(TrainingProgramExcelTemplate::getElectiveGroupCode));
+
+        for (Map.Entry<String, List<TrainingProgramExcelTemplate>> entry : groupMap.entrySet()) {
+            String groupCode = entry.getKey();
+            List<TrainingProgramExcelTemplate> items = entry.getValue();
+            Double requiredCredits = items.get(0).getElectiveRequiredCredits();
+
+            // 创建分组，先检查是否存在
+            CourseExclusivityDO courseExclusivityDO = courseExclusivityService.selectByTpId(tpId.toString());
+            Long exclusivityId;
+            if (!Objects.isNull(courseExclusivityDO)) {
+                // 存在的话，将详情表全部软删除，并获取版本号
+                exclusivityId = courseExclusivityDO.getId();
+                courseExclusivityService.deleteCourseExclusivityDetail(List.of(exclusivityId.toString()));
+            }
+            CourseExclusivitySaveReqDTO courseExclusivitySaveReqDTO = CourseExclusivitySaveReqDTO.builder()
+                    .requiredCredits((int) Double.parseDouble(String.valueOf(requiredCredits)))
+                    .groupCode(groupCode)
+                    .trainingProgramId(tpId)
+                    .version(version)
+                    .build();
+            exclusivityId = courseExclusivityService.createCourseExclusivity(courseExclusivitySaveReqDTO);
+
+            // 保存详细的分组关联关系
+            Long finalExclusivityId = exclusivityId;
+            List<CourseExclusivityAddCourseReqDTO> details = items.stream()
+                    .map(item -> CourseExclusivityAddCourseReqDTO.builder()
+                            .exclusivityId(finalExclusivityId.toString())
+                            .courseId(Objects.requireNonNull(Objects.requireNonNull(stringRedisTemplate.opsForHash().get(RedisKeyConstant.COURSE_NAME_ID_KEY, item.getCourseName())).toString()))
+                            .build())
+                    .toList();
+
+            courseExclusivityService.batchAddCourseToCourseExclusivity(details);
+        }
     }
 
     /**
@@ -453,6 +636,116 @@ public class TrainingProgramServiceImpl extends ServiceImpl<TrainingProgramMappe
         }
 
         return requestParam;
+    }
+
+    /**
+     * 读取合并区域
+     */
+    private Map<Integer, ExcelMergeRegion> readMergeRegions(MultipartFile file) {
+        try (InputStream is = file.getInputStream();
+             Workbook workbook = new XSSFWorkbook(is)) {
+
+            Sheet sheet = workbook.getSheetAt(0);
+            Map<Integer, ExcelMergeRegion> rowToRegion = new HashMap<>();
+            final int CREDIT_COLUMN_INDEX = 12; // 选修要求学分列（0-based列索引，第6列）
+
+            for (int i = 0; i < sheet.getNumMergedRegions(); i++) {
+                CellRangeAddress range = sheet.getMergedRegion(i);
+
+                // 跳过前两行（0-based 行号 0 和 1 是表头）
+                if (range.getLastRow() <= 1) {
+                    continue; // 完全在表头区域，跳过
+                }
+
+                // 只处理包含"选修要求学分"列的合并区域
+                if (range.getFirstColumn() <= CREDIT_COLUMN_INDEX &&
+                        range.getLastColumn() >= CREDIT_COLUMN_INDEX) {
+
+                    // 调整起始行：如果合并区域从表头开始，但延伸到数据区，则从第2行（0-based=2）开始
+                    int actualFirstRow = Math.max(range.getFirstRow(), 2);
+                    int actualLastRow = range.getLastRow();
+
+                    // 确保调整后的区域有效
+                    if (actualFirstRow <= actualLastRow) {
+                        Row firstDataRow = sheet.getRow(actualFirstRow);
+                        Cell cell = firstDataRow != null ? firstDataRow.getCell(CREDIT_COLUMN_INDEX) : null;
+                        String value = getCellValueAsString(cell);
+
+                        if (StrUtil.isNotBlank(value)) {
+                            ExcelMergeRegion region = new ExcelMergeRegion();
+                            region.setFirstRow(actualFirstRow);
+                            region.setLastRow(actualLastRow);
+                            region.setValue(value);
+
+                            // 建立每行到合并区域的映射
+                            for (int r = actualFirstRow; r <= actualLastRow; r++) {
+                                rowToRegion.put(r, region);
+                            }
+                        }
+                    }
+                }
+            }
+            return rowToRegion;
+        } catch (Exception e) {
+            throw new ClientException("Excel合并区域解析失败: " + e.getMessage());
+        }
+    }
+
+    private String getCellValueAsString(Cell cell) {
+        if (cell == null) return null;
+        return switch (cell.getCellType()) {
+            case STRING -> cell.getStringCellValue();
+            case NUMERIC -> String.valueOf((int) cell.getNumericCellValue());
+            default -> null;
+        };
+    }
+
+    private void judgeCourseAndCourseIsExist(List<TrainingProgramExcelTemplate> requestParam) {
+        Set<String> courseFailConvert = new LinkedHashSet<>();
+        Set<String> collegeFailConvert = new LinkedHashSet<>();
+
+        for(TrainingProgramExcelTemplate data: requestParam) {
+            // 从缓存获取课程 ID
+            String courseIdStr = (String) stringRedisTemplate.opsForHash()
+                    .get(RedisKeyConstant.COURSE_NAME_ID_KEY, data.getCourseName());
+            if (StrUtil.isBlank(courseIdStr)) {
+                // 告知用户哪些课程需要事先创建
+                log.warn("课程不存在：{}，请先添加该课程", data.getCourseName());
+                courseFailConvert.add("课程不存在：" + data.getCourseName() + "，请先添加该课程");
+            }
+
+            // 从缓存获取学院 ID
+            if (StrUtil.isNotBlank(data.getCollegeName())) {
+                String collegeIdStr = (String) stringRedisTemplate.opsForHash()
+                        .get(RedisKeyConstant.COLLEGE_ID_NAME_CACHE_KEY, data.getCollegeName());
+                if (StrUtil.isBlank(collegeIdStr)) {
+                    // 告知用户哪些学院需要事先创建
+                    log.warn("学院不存在：{}，请检查学院名称是否正确，若确实不存在，请告知管理员进行添加。", data.getCourseName());
+                    collegeFailConvert.add("学院不存在：" + data.getCourseName() + "，，请检查学院名称是否正确，若确实不存在，请告知管理员进行添加。");
+                }
+            }
+        }
+        if (CollUtil.isNotEmpty(courseFailConvert) || CollUtil.isNotEmpty(collegeFailConvert)) {
+            StringBuilder fullMessage = new StringBuilder();
+            fullMessage.append("导入失败，请修正以下问题后重试：\n");
+
+            if (!courseFailConvert.isEmpty()) {
+                fullMessage.append("【课程缺失】\n");
+                int index = 1;
+                for (String error : courseFailConvert) {
+                    fullMessage.append("  ").append(index++).append(". ").append(error).append("\n");
+                }
+            }
+
+            if (!collegeFailConvert.isEmpty()) {
+                fullMessage.append("【学院缺失】\n");
+                int index = 1;
+                for (String error : collegeFailConvert) {
+                    fullMessage.append("  ").append(index++).append(". ").append(error).append("\n");
+                }
+            }
+            throw new ClientException(fullMessage.toString().trim());
+        }
     }
 
 }

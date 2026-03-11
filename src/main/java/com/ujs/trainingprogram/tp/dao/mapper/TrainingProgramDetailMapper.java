@@ -1,6 +1,7 @@
 package com.ujs.trainingprogram.tp.dao.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.ujs.trainingprogram.tp.dao.entity.CourseExclusivityDetailDO;
 import com.ujs.trainingprogram.tp.dao.entity.TrainingProgramDetailDO;
 import com.ujs.trainingprogram.tp.dto.resp.trainingprogram.TrainingProgramDetailSelectRespDTO;
 import org.apache.ibatis.annotations.Param;
@@ -20,4 +21,11 @@ public interface TrainingProgramDetailMapper extends BaseMapper<TrainingProgramD
      * @return  返回实体
      */
     List<TrainingProgramDetailSelectRespDTO> selectTrainingProgramDetail(@Param("trainingProgramId") Long trainingProgramId);
+
+    /**
+     * 批量插入
+     *
+     * @param list 批量插入请求参数
+     */
+    int insertBatch(@Param("list") List<TrainingProgramDetailDO> list);
 }

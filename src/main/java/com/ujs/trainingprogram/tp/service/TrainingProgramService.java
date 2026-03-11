@@ -2,10 +2,7 @@ package com.ujs.trainingprogram.tp.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.ujs.trainingprogram.tp.dao.entity.TrainingProgramDO;
-import com.ujs.trainingprogram.tp.dto.req.trainingprogram.TrainingProgramAddCourseReqDTO;
-import com.ujs.trainingprogram.tp.dto.req.trainingprogram.TrainingProgramCreateReqDTO;
-import com.ujs.trainingprogram.tp.dto.req.trainingprogram.TrainingProgramUpdateCourseReqDTO;
-import com.ujs.trainingprogram.tp.dto.req.trainingprogram.TrainingProgramUpdateReqDTO;
+import com.ujs.trainingprogram.tp.dto.req.trainingprogram.*;
 import com.ujs.trainingprogram.tp.dto.resp.trainingprogram.TrainingProgramDetailSelectRespDTO;
 import com.ujs.trainingprogram.tp.dto.resp.trainingprogram.TrainingProgramSelectRespDTO;
 import com.ujs.trainingprogram.tp.excel.template.TrainingProgramExcelTemplate;
@@ -100,11 +97,18 @@ public interface TrainingProgramService extends IService<TrainingProgramDO> {
     void downloadTrainingProgramTemplate(HttpServletResponse response);
     
     /**
-     * 批量保存培养计划详情
+     * 从 Excel 中批量保存培养计划详情
      *
      * @param dataList Excel数据列表
      */
-    void batchSaveTrainingProgramDetails(List<TrainingProgramExcelTemplate> dataList, Long tpId, Long majorId, Integer version);
+    void batchSaveTrainingProgramDetailsFromExcel(List<TrainingProgramExcelTemplate> dataList, Long tpId, Long majorId, Integer version);
+
+    /**
+     * 批量保存培养计划详情
+     *
+     * @param requestParams 请求参数
+     */
+    void batchSaveTrainingProgramDetails(List<TrainingProgramAddCourseFromExcelReqDTO> requestParams, Integer version);
 
     /**
      * 根据学院与专业信息查找培养计划
