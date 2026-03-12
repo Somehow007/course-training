@@ -28,6 +28,25 @@ import java.util.Objects;
 public class ExcelExportUtils {
 
     /**
+     * 仅对指定工作表应用统一样式（不做纵向合并）
+     *
+     * @param excelBytes 原始 Excel 字节数组
+     * @param sheetIndex 工作表索引（从0开始）
+     * @return 应用样式后的字节数组
+     */
+    public static byte[] applyStylesOnly(byte[] excelBytes, int sheetIndex) throws IOException {
+        try (Workbook workbook = new XSSFWorkbook(new ByteArrayInputStream(excelBytes))) {
+            Sheet sheet = workbook.getSheetAt(sheetIndex);
+            applyStyles(workbook, sheet);
+
+            try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+                workbook.write(baos);
+                return baos.toByteArray();
+            }
+        }
+    }
+
+    /**
      * 合并指定列的连续相同单元格
      *
      * @param excelBytes   原始 Excel 字节数组

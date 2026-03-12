@@ -385,9 +385,17 @@ public class TrainingProgramServiceImpl extends ServiceImpl<TrainingProgramMappe
             response.setHeader("Content-Disposition", "attachment; filename=" + fileName);
 
             // 生成只有表头的Excel模板
-            EasyExcel.write(response.getOutputStream(), TrainingProgramExcelTemplate.class)
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            EasyExcel.write(baos, TrainingProgramExcelTemplate.class)
                     .sheet("培养计划模板")
                     .doWrite(List.of()); // 空数据列表，只包含表头
+
+            // 应用与正式导出一致的样式
+            byte[] styledBytes = ExcelExportUtils.applyStylesOnly(baos.toByteArray(), 0);
+
+            // 输出
+            response.getOutputStream().write(styledBytes);
+            response.getOutputStream().flush();
         } catch (IOException e) {
             throw new ClientException("下载模板失败: " + e.getMessage());
         }
