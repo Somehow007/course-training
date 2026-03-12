@@ -4,7 +4,7 @@
 -- https://tableplus.com/
 --
 -- Database: course_training
--- Generation Time: 2026-03-12 19:34:24.5200
+-- Generation Time: 2026-03-12 19:46:55.2370
 -- -------------------------------------------------------------
 
 
@@ -291,7 +291,7 @@ INSERT INTO `training_program_detail` (`id`, `training_program_id`, `course_id`,
 (2031716920967634955, 2030925858921603072, 2031711853829009408, 0, '面向对象编程课程设计', 1988456399996981248, 1988456399996981248, 1.5, 1.5, NULL, 0, NULL, NULL, NULL, NULL, NULL, 2, NULL, NULL, NULL, 2, '2026-03-11 21:00:36', '2026-03-11 21:00:36', 0);
 
 INSERT INTO `user` (`id`, `username`, `password`, `college_id`, `dict_id`, `create_time`, `update_time`, `del_flag`) VALUES
-(1991081015491952640, 'Somehow', '$2a$10$b27B.jsk7rh7IdPb7WRUyuu6QfRi4j4jKaVlYQDCeBhjJJIFKEC86', 1988456399996981248, 1988934680181559296, '2025-11-19 17:48:01', '2025-11-19 17:48:01', 0);
+(1991081015491952640, 'admin', '$2a$10$b27B.jsk7rh7IdPb7WRUyuu6QfRi4j4jKaVlYQDCeBhjJJIFKEC86', 1988456399996981248, 1988934680181559296, '2025-11-19 17:48:01', '2025-11-19 17:48:01', 0);
 
 
 
