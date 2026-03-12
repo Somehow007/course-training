@@ -6,17 +6,13 @@ import com.ujs.trainingprogram.tp.common.result.Result;
 import com.ujs.trainingprogram.tp.common.web.Results;
 import com.ujs.trainingprogram.tp.dto.req.courseexclusivity.CourseExclusivityAddCourseReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.courseexclusivity.CourseExclusivitySaveReqDTO;
-import com.ujs.trainingprogram.tp.dto.req.trainingprogram.TrainingProgramAddCourseReqDTO;
-import com.ujs.trainingprogram.tp.dto.req.trainingprogram.TrainingProgramCreateReqDTO;
-import com.ujs.trainingprogram.tp.dto.req.trainingprogram.TrainingProgramUpdateReqDTO;
-import com.ujs.trainingprogram.tp.dto.resp.trainingprogram.TrainingProgramDetailSelectRespDTO;
 import com.ujs.trainingprogram.tp.service.CourseExclusivityService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
  * 课程分组管理层
@@ -32,7 +28,7 @@ public class CourseExclusivityController {
     /**
      * 创建课程分组
      */
-    @RequireAuthentication(AuthConstant.ACADEMIC_AFFAIRS_STAFF)
+    @RequireAuthentication(AuthConstant.DEPARTMENT_CHAIR)
     @Operation(summary = "创建课程分组")
     @PostMapping("/api/course-exclusivity/mainAdmin/create")
     public Result<Void> createTrainingProgram(@RequestBody CourseExclusivitySaveReqDTO requestParam) {
@@ -43,6 +39,7 @@ public class CourseExclusivityController {
     /**
      * 为课程分组添加课程信息
      */
+    @RequireAuthentication(AuthConstant.DEPARTMENT_CHAIR)
     @Operation(summary = "为课程分组添加课程信息")
     @PostMapping("/api/course-exclusivity/mainAdmin/add")
     public Result<Void> addCourseToTrainingProgram(@RequestBody CourseExclusivityAddCourseReqDTO requestParam) {

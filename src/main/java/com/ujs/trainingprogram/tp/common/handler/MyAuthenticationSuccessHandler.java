@@ -1,7 +1,6 @@
 package com.ujs.trainingprogram.tp.common.handler;
 
 import com.alibaba.fastjson2.JSONObject;
-import com.ujs.trainingprogram.tp.common.result.ResultMessage;
 import com.ujs.trainingprogram.tp.dao.entity.UserDO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -36,7 +35,7 @@ public class MyAuthenticationSuccessHandler implements AuthenticationSuccessHand
         response.setContentType("application/json;charset=utf-8");
         try (PrintWriter out = response.getWriter()) {
             response.setStatus(HttpServletResponse.SC_OK);
-            out.write(JSONObject.toJSONString(ResultMessage.LOGIN_SUCCESS));
+            out.write(JSONObject.toJSONString("登陆成功"));
         }
         log.info("Principal类型: {}", authentication.getPrincipal().getClass().getName());
         log.warn("MyAuthenticationSuccessHandler用户信息：{}", userDO);

@@ -1,7 +1,7 @@
 package com.ujs.trainingprogram.tp.common.handler;
 
 import com.alibaba.fastjson2.JSONObject;
-import com.ujs.trainingprogram.tp.common.result.ResultMessage;
+import com.ujs.trainingprogram.tp.common.errorcode.BaseErrorCode;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -21,7 +21,7 @@ public class MyAuthenticationFailuerHandler implements AuthenticationFailureHand
         response.setContentType("application/json;charset=utf-8");
         try (PrintWriter out = response.getWriter()) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            out.write(JSONObject.toJSONString(ResultMessage.LOGIN_ERROR_CODE));
+            out.write(JSONObject.toJSONString(BaseErrorCode.AUTHENTICATION_ERROR));
         }
     }
 }

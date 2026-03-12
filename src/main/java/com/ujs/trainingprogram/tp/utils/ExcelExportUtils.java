@@ -108,11 +108,11 @@ public class ExcelExportUtils {
 
         // 创建字体
         Font simHeiFont = workbook.createFont();
-        simHeiFont.setFontName("SimHei");
+        simHeiFont.setFontName("黑体");
         simHeiFont.setFontHeightInPoints((short) 9);
 
         Font simSunFont = workbook.createFont();
-        simSunFont.setFontName("SimSun");
+        simSunFont.setFontName("宋体");
         simSunFont.setFontHeightInPoints((short) 9);
 
         // 公共：细边框 + 无背景
@@ -173,6 +173,22 @@ public class ExcelExportUtils {
             String courseName = getCellValue(sheet, rowIndex, 3);
             boolean isSummaryRow = "合计".equals(courseName) || "小计".equals(courseName);
 
+            // 合计/小计行：合并第3列和第4列（索引2-3），并将文字放到合并区域左上角（索引2）
+            if (!isHeaderRow && isSummaryRow) {
+                ensureMergedRegion(sheet, rowIndex, rowIndex, 2, 3);
+
+                Cell leftTop = row.getCell(2);
+                if (leftTop == null) {
+                    leftTop = row.createCell(2);
+                }
+                leftTop.setCellValue(courseName);
+
+                Cell right = row.getCell(3);
+                if (right != null) {
+                    right.setBlank();
+                }
+            }
+
             for (int colIndex = 0; colIndex < lastCellNum; colIndex++) {
                 Cell cell = row.getCell(colIndex);
                 if (cell == null) {
@@ -193,6 +209,23 @@ public class ExcelExportUtils {
                     }
                 }
             }
+        }
+    }
+
+    private static void ensureMergedRegion(Sheet sheet, int firstRow, int lastRow, int firstCol, int lastCol) {
+        for (int i = 0; i < sheet.getNumMergedRegions(); i++) {
+            CellRangeAddress region = sheet.getMergedRegion(i);
+            if (region.getFirstRow() == firstRow
+                    && region.getLastRow() == lastRow
+                    && region.getFirstColumn() == firstCol
+                    && region.getLastColumn() == lastCol) {
+                return;
+            }
+        }
+        try {
+            sheet.addMergedRegion(new CellRangeAddress(firstRow, lastRow, firstCol, lastCol));
+        } catch (Exception ignored) {
+            // 忽略合并冲突
         }
     }
 

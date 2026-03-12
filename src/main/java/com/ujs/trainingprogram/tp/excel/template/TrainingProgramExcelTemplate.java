@@ -14,24 +14,27 @@ import lombok.Data;
 @Data
 @ContentRowHeight(15)
 @HeadRowHeight(20)
-@ColumnWidth(25)
+@ColumnWidth(15)
 public class TrainingProgramExcelTemplate {
 
     /**
      * 课程类别
      */
+    @ColumnWidth(15)
     @ExcelProperty("课程类别")
     private String courseType;
 
     /**
      * 课程性质（0:必修 1:选修）
      */
+    @ColumnWidth(10)
     @ExcelProperty(value = "课程性质", converter = CourseNatureConverter.class)
     private Integer courseNature;
 
     /**
      * 开课学院名称
      */
+    @ColumnWidth(16)
     @ExcelProperty("开课学院")
     private String collegeName;
 

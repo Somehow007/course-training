@@ -34,7 +34,6 @@ public class LoadCacheUtils {
 
     /**
      * 预加载所有学院数据到缓存中
-     * todo 更新、新增时，需要重新加载下缓存
      */
     public void loadCollegeCache() {
         Boolean hasCollegeCache = stringRedisTemplate.hasKey(RedisKeyConstant.COLLEGE_ID_NAME_CACHE_KEY);

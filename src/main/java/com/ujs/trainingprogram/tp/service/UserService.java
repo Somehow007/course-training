@@ -1,11 +1,8 @@
 package com.ujs.trainingprogram.tp.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.ujs.trainingprogram.tp.common.result.ResultData;
 import com.ujs.trainingprogram.tp.dao.entity.UserDO;
-import com.ujs.trainingprogram.tp.dto.req.user.UserLoginReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.user.UserPageQueryReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.user.UserRegistryReqDTO;
 import com.ujs.trainingprogram.tp.dto.resp.user.UserPageQueryRespDTO;

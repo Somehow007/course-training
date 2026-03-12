@@ -15,7 +15,6 @@ public class CollegePageReqDTO extends Page {
 
     /**
      * 学院ID
-     * todo 可扩展为通过多个学院Id查询信息，List<String>
      */
     @Schema(description = "学院Id", example = "[\"1988456399996981248\", \"1988456399996981249\"]")
     private List<String> collegeIds;

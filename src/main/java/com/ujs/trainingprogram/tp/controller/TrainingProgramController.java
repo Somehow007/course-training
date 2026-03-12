@@ -1,5 +1,7 @@
 package com.ujs.trainingprogram.tp.controller;
 
+import com.ujs.trainingprogram.tp.authentication.RequireAuthentication;
+import com.ujs.trainingprogram.tp.common.constant.AuthConstant;
 import com.ujs.trainingprogram.tp.common.result.Result;
 import com.ujs.trainingprogram.tp.common.web.Results;
 import com.ujs.trainingprogram.tp.dto.req.trainingprogram.TrainingProgramAddCourseReqDTO;
@@ -27,6 +29,7 @@ public class TrainingProgramController {
     /**
      * 创建某专业的培养计划
      */
+    @RequireAuthentication(AuthConstant.ACADEMIC_AFFAIRS_STAFF)
     @Operation(summary = "创建某专业的培养计划")
     @PostMapping("/api/training-program/mainAdmin/create")
     public Result<Void> createTrainingProgram(@RequestBody TrainingProgramCreateReqDTO requestParam) {
@@ -37,6 +40,7 @@ public class TrainingProgramController {
     /**
      * 为培养计划添加课程
      */
+    @RequireAuthentication(AuthConstant.ACADEMIC_AFFAIRS_STAFF)
     @Operation(summary = "为培养计划添加课程")
     @PostMapping("/api/training-program/mainAdmin/add")
     public Result<Void> addCourseToTrainingProgram(@RequestBody TrainingProgramAddCourseReqDTO requestParam) {
@@ -47,6 +51,7 @@ public class TrainingProgramController {
     /**
      * 查询某专业的培养计划
      */
+    @RequireAuthentication(AuthConstant.ACADEMIC_AFFAIRS_STAFF)
     @Operation(summary = "查询某专业的培养计划")
     @GetMapping("/api/training-program/detail/select/{id}")
     public Result<List<TrainingProgramDetailSelectRespDTO>> selectTrainingProgramDetail(@PathVariable("id") String id) {
@@ -56,6 +61,7 @@ public class TrainingProgramController {
     /**
      * 删除培养计划
      */
+    @RequireAuthentication(AuthConstant.ACADEMIC_AFFAIRS_STAFF)
     @Operation(summary = "删除培养计划")
     @DeleteMapping("/api/training-program/mainAdmin/delete/{id}")
     public Result<Void> deleteTrainingProgram(@PathVariable("id") String id) {
@@ -66,6 +72,7 @@ public class TrainingProgramController {
     /**
      * 修改培养计划
      */
+    @RequireAuthentication(AuthConstant.ACADEMIC_AFFAIRS_STAFF)
     @Operation(summary = "修改培养计划")
     @PostMapping("/api/training-program/mainAdmin/update")
     public Result<Void> updateTrainingProgram(@RequestBody TrainingProgramUpdateReqDTO requestParam) {

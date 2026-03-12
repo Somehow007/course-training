@@ -1,23 +1,17 @@
 package com.ujs.trainingprogram.tp.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.ujs.trainingprogram.tp.authentication.RequireAuthentication;
-import com.ujs.trainingprogram.tp.common.Constant;
 import com.ujs.trainingprogram.tp.common.constant.AuthConstant;
 import com.ujs.trainingprogram.tp.common.exception.ClientException;
 import com.ujs.trainingprogram.tp.common.result.Result;
-import com.ujs.trainingprogram.tp.common.result.ResultData;
-import com.ujs.trainingprogram.tp.common.result.ResultMessage;
 import com.ujs.trainingprogram.tp.common.web.Results;
-import com.ujs.trainingprogram.tp.dao.entity.CollegeDO;
 import com.ujs.trainingprogram.tp.dao.entity.UserDO;
 import com.ujs.trainingprogram.tp.dto.req.user.UserLoginReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.user.UserPageQueryReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.user.UserRegistryReqDTO;
 import com.ujs.trainingprogram.tp.dto.resp.user.UserPageQueryRespDTO;
 import com.ujs.trainingprogram.tp.security.SecurityUserDetails;
-import com.ujs.trainingprogram.tp.service.CollegeService;
 import com.ujs.trainingprogram.tp.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -25,22 +19,16 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.web.bind.annotation.*;
 
-import java.security.SecureRandom;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * 用户接口
@@ -54,6 +42,7 @@ public class UserController {
     private final UserService userService;
     private final AuthenticationManager authenticationManager;
 
+    @RequireAuthentication(AuthConstant.ACADEMIC_AFFAIRS_STAFF)
     @Operation(summary = "分页查询用户数据")
     @GetMapping("/api/user/mainAdmin/page")
     public Result<IPage<UserPageQueryRespDTO>> pageQueryUser(UserPageQueryReqDTO requestParam) {

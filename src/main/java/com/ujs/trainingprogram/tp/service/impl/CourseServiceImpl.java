@@ -4,26 +4,21 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.baomidou.mybatisplus.extension.toolkit.SqlHelper;
 import com.ujs.trainingprogram.tp.common.constant.RedisKeyConstant;
 import com.ujs.trainingprogram.tp.common.exception.ClientException;
-import com.ujs.trainingprogram.tp.common.result.ResultData;
-import com.ujs.trainingprogram.tp.dao.mapper.CourseMapper;
 import com.ujs.trainingprogram.tp.dao.entity.CourseDO;
-import com.ujs.trainingprogram.tp.dao.mapper.MajorMapper;
+import com.ujs.trainingprogram.tp.dao.mapper.CourseMapper;
 import com.ujs.trainingprogram.tp.dto.req.course.CoursePageQueryReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.course.CourseSaveReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.course.CourseUpdateReqDTO;
 import com.ujs.trainingprogram.tp.dto.resp.course.CoursePageQueryRespDTO;
 import com.ujs.trainingprogram.tp.service.CollegeService;
 import com.ujs.trainingprogram.tp.service.CourseService;
-import com.ujs.trainingprogram.tp.service.MajorService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -31,10 +26,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 /**
  * 课程业务逻辑实现层
