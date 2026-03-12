@@ -13,12 +13,12 @@ public class UserLoginReqDTO {
     /**
      * 用户名
      */
-    @Schema(description = "用户名", example = "somehow")
+    @Schema(description = "用户名", example = "admin")
     private String username;
 
     /**
      * 密码
      */
-    @Schema(description = "密码", example = "123456")
+    @Schema(description = "密码", example = "123")
     private String password;
 }

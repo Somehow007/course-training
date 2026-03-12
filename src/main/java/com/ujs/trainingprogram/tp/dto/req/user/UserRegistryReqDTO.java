@@ -13,7 +13,7 @@ public class UserRegistryReqDTO {
     /**
      * 用户名
      */
-    @Schema(description = "用户名", example = "Somehow", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "用户名", example = "admin", requiredMode = Schema.RequiredMode.REQUIRED)
     private String username;
 
     /**
@@ -25,7 +25,7 @@ public class UserRegistryReqDTO {
     /**
      * 所属学院ID（引用 college.id）
      */
-    @Schema(description = "所属学院ID", example = "1988456399996981248", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "人员所属学院ID", example = "1988456399996981248", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
     private String collegeId;
 
     /**
