@@ -70,4 +70,12 @@ public class SysDictServiceImpl extends ServiceImpl<SysDictMapper, SysDictDO> im
                 .eq(SysDictDO::getDelFlag, 0);
         return baseMapper.selectList(queryWrapper);
     }
+
+    @Override
+    public List<SysDictDO> listCourseTypeSysDict() {
+        LambdaQueryWrapper<SysDictDO> queryWrapper = Wrappers.lambdaQuery(SysDictDO.class)
+                .eq(SysDictDO::getDictType, "course_type")
+                .eq(SysDictDO::getDelFlag, 0);
+        return baseMapper.selectList(queryWrapper);
+    }
 }

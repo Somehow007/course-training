@@ -19,7 +19,7 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ujs.trainingprogram.tp.dao.mapper.CourseExclusivityDetailMapper">
 
-    <!-- 分页查询学院 -->
+    <!-- 批量插入 -->
     <insert id="insertBatch" parameterType="java.util.List">
         INSERT INTO course_exclusivity_detail (id, exclusivity_id, course_id, create_time, update_time, del_flag)
         VALUES

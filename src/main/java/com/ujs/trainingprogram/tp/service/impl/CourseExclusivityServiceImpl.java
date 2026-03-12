@@ -17,16 +17,14 @@ import com.ujs.trainingprogram.tp.dao.mapper.CourseMapper;
 import com.ujs.trainingprogram.tp.dto.req.courseexclusivity.CourseExclusivityAddCourseReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.courseexclusivity.CourseExclusivitySaveReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.courseexclusivity.CourseExclusivityUpdateReqDTO;
+import com.ujs.trainingprogram.tp.dto.resp.courseexclusivity.CourseToExclusivityRespDTO;
 import com.ujs.trainingprogram.tp.service.CourseExclusivityService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -39,8 +37,7 @@ public class CourseExclusivityServiceImpl extends ServiceImpl<CourseExclusivityM
 
     private final CourseMapper courseMapper;
     private final CourseExclusivityDetailMapper courseExclusivityDetailMapper;
-//    private static final String GROUP_CODE_SUFFIX = "EXC_GROUP_%s_%d_"
-    
+
 
     @Override
     public Long createCourseExclusivity(CourseExclusivitySaveReqDTO requestParam) {
@@ -57,7 +54,7 @@ public class CourseExclusivityServiceImpl extends ServiceImpl<CourseExclusivityM
     @Override
     public void deleteCourseExclusivity(List<String> ids) {
         LambdaUpdateWrapper<CourseExclusivityDO> updateWrapper = Wrappers.lambdaUpdate(CourseExclusivityDO.class)
-                .in(CourseExclusivityDO::getId, ids)
+                .in(CourseExclusivityDO::getTrainingProgramId, ids)
                 .eq(CourseExclusivityDO::getDelFlag, 0)
                 .set(CourseExclusivityDO::getDelFlag, 1);
         baseMapper.update(updateWrapper);
@@ -177,15 +174,65 @@ public class CourseExclusivityServiceImpl extends ServiceImpl<CourseExclusivityM
     }
 
     @Override
-    public CourseExclusivityDO selectByTpId(String id) {
+    public List<CourseExclusivityDO> selectByTpId(String id) {
         LambdaQueryWrapper<CourseExclusivityDO> queryWrapper = Wrappers.lambdaQuery(CourseExclusivityDO.class)
                 .eq(CourseExclusivityDO::getTrainingProgramId, id)
                 .eq(CourseExclusivityDO::getDelFlag, 0);
-        return baseMapper.selectOne(queryWrapper);
+        return baseMapper.selectList(queryWrapper);
     }
 
     @Override
-    public List<String> getElectiveGroupCode(String id) {
-        return List.of();
+    public Map<String, List<String>> getElectiveGroupCode(String id) {
+        LambdaQueryWrapper<CourseExclusivityDO> queryWrapper = Wrappers.lambdaQuery(CourseExclusivityDO.class)
+                .eq(CourseExclusivityDO::getTrainingProgramId, id)
+                .eq(CourseExclusivityDO::getDelFlag, 0);
+        List<CourseExclusivityDO> courseExclusivityDOS = baseMapper.selectList(queryWrapper);
+
+        if (CollUtil.isEmpty(courseExclusivityDOS)) {
+            return new HashMap<>();
+        }
+        List<Long> exclusivityIds = courseExclusivityDOS.stream()
+                .map(CourseExclusivityDO::getId)
+                .toList();
+
+        LambdaQueryWrapper<CourseExclusivityDetailDO> detailQueryWrapper = Wrappers.lambdaQuery(CourseExclusivityDetailDO.class)
+                .in(CourseExclusivityDetailDO::getExclusivityId, exclusivityIds)
+                .eq(CourseExclusivityDetailDO::getDelFlag, 0);
+
+        List<CourseExclusivityDetailDO> detailDOS = courseExclusivityDetailMapper.selectList(detailQueryWrapper);
+
+        return courseExclusivityDOS.stream()
+                .collect(Collectors.toMap(
+                        CourseExclusivityDO::getGroupCode,
+                        exclusivity -> detailDOS.stream()
+                                .filter(detail -> detail.getExclusivityId().equals(exclusivity.getId()))
+                                .map(detail -> detail.getCourseId().toString())
+                                .toList()
+                ));
     }
+
+    @Override
+    public List<CourseExclusivityDO> selectAllByTpId(String id) {
+        LambdaQueryWrapper<CourseExclusivityDO> queryWrapper = Wrappers.lambdaQuery(CourseExclusivityDO.class)
+                .eq(CourseExclusivityDO::getTrainingProgramId, id)
+                .eq(CourseExclusivityDO::getDelFlag, 0);
+        return baseMapper.selectList(queryWrapper);
+
+    }
+
+    @Override
+    public Map<String, CourseToExclusivityRespDTO> selectCourseToExclusivity(String id) {
+        List<CourseToExclusivityRespDTO> courseToExclusivityRespDTOS = baseMapper.selectCourseToExclusivity(id);
+        if (CollUtil.isEmpty(courseToExclusivityRespDTOS)) {
+            return new HashMap<>();
+        }
+
+        return courseToExclusivityRespDTOS.stream()
+                .collect(Collectors.toMap(
+                        CourseToExclusivityRespDTO::getCourseName,
+                        dto -> dto,
+                        (v1, v2) -> v1
+                ));
+    }
+
 }

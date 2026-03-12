@@ -41,4 +41,11 @@ public interface SysDictService extends IService<SysDictDO> {
      * @return  系统字典
      */
     List<SysDictDO> listSysDict();
+
+    /**
+     * 查询课程类别的数据字典信息
+     *
+     * @return  课程类别的数据字典
+     */
+    List<SysDictDO> listCourseTypeSysDict();
 }

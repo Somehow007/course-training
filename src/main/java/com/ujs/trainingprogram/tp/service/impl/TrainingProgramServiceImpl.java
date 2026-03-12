@@ -21,15 +21,16 @@ import com.ujs.trainingprogram.tp.dao.mapper.TrainingProgramMapper;
 import com.ujs.trainingprogram.tp.dto.req.courseexclusivity.CourseExclusivityAddCourseReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.courseexclusivity.CourseExclusivitySaveReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.trainingprogram.*;
+import com.ujs.trainingprogram.tp.dto.resp.courseexclusivity.CourseToExclusivityRespDTO;
 import com.ujs.trainingprogram.tp.dto.resp.trainingprogram.TrainingProgramDetailSelectRespDTO;
 import com.ujs.trainingprogram.tp.dto.resp.trainingprogram.TrainingProgramSelectRespDTO;
 import com.ujs.trainingprogram.tp.excel.model.ExcelMergeRegion;
 import com.ujs.trainingprogram.tp.excel.template.TrainingProgramExcelTemplate;
 import com.ujs.trainingprogram.tp.service.*;
+import com.ujs.trainingprogram.tp.utils.ExcelExportUtils;
 import com.ujs.trainingprogram.tp.utils.LoadCacheUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.io.FilenameUtils;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -48,6 +49,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import com.alibaba.excel.EasyExcel;
 import com.ujs.trainingprogram.tp.excel.listener.ReadTrainingProgramListener;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URLEncoder;
@@ -74,6 +76,7 @@ public class TrainingProgramServiceImpl extends ServiceImpl<TrainingProgramMappe
     private final MajorMapper majorMapper;
     private final LoadCacheUtils loadCacheUtils;
     private final StringRedisTemplate stringRedisTemplate;
+    private final SysDictService sysDictService;
 
     private static final String TP_NAME_SUFFIX = "%s专业课程设置及学时分配表";
     private final CourseExclusivityService courseExclusivityService;
@@ -223,28 +226,69 @@ public class TrainingProgramServiceImpl extends ServiceImpl<TrainingProgramMappe
         try {
             // 获取培养计划数据
             List<TrainingProgramDetailSelectRespDTO> dataList = selectTrainingProgramDetail(id);
+            // 获取分组数据
+            Map<String, CourseToExclusivityRespDTO> courseToExclusivityMap = courseExclusivityService.selectCourseToExclusivity(id);
 
             // 将数据转换为Excel DTO
-            List<TrainingProgramExcelTemplate> excelDataList = dataList.stream()
+            List<TrainingProgramExcelTemplate> excelDataList = new ArrayList<>(dataList.stream()
                     .map(data -> {
                         TrainingProgramExcelTemplate excelDTO = new TrainingProgramExcelTemplate();
                         BeanUtil.copyProperties(data, excelDTO);
                         // 处理总学时字段的导出
                         buildTotalTime(data, excelDTO);
                         excelDTO.setElectiveCreditRequirement(data.getRequiredElective() != null ? data.getRequiredElective().toString() : "");
+                        excelDTO.setElectiveGroupCode(Objects.isNull(courseToExclusivityMap.get(data.getCourseName())) ? "" : courseToExclusivityMap.get(data.getCourseName()).getGroupCode());
                         return excelDTO;
                     })
-                    .toList();
+                    .toList());
+
+            // 1. 定义course_type的自定义排序顺序
+            Map<String, Integer> courseTypeSortMap = sysDictService.listCourseTypeSysDict()
+                    .stream()
+                    .collect(Collectors.toMap(
+                            SysDictDO::getDictName,
+                            SysDictDO::getSortOrder,
+                            (existing, replacement) -> existing // 处理重复键
+                    ));
+
+            // 升序
+            excelDataList.sort(
+                    Comparator.<TrainingProgramExcelTemplate, Integer>comparing(
+                                    dto -> courseTypeSortMap.getOrDefault(dto.getCourseType(), Integer.MAX_VALUE)
+                            )
+                            .thenComparing(
+                                    TrainingProgramExcelTemplate::getCourseNature,
+                                    Comparator.nullsLast(Comparator.naturalOrder())
+                            )
+                            .thenComparing(
+                                    TrainingProgramExcelTemplate::getElectiveGroupCode,
+                                    Comparator.nullsLast(Comparator.naturalOrder())
+                            )
+            );
+
+            List<TrainingProgramExcelTemplate> finalList = ExcelExportUtils.insertSummaryRows(excelDataList);
 
             // 设置响应头
             String fileName = URLEncoder.encode(dataList.get(0).getName() + "专业设置及学时分配表.xlsx", StandardCharsets.UTF_8);
             response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
             response.setHeader("Content-Disposition", "attachment; filename=" + fileName);
 
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
             // 导出Excel
-            EasyExcel.write(response.getOutputStream(), TrainingProgramExcelTemplate.class)
+            EasyExcel.write(baos, TrainingProgramExcelTemplate.class)
                     .sheet("培养计划")
-                    .doWrite(excelDataList);
+                    .doWrite(finalList);
+
+            // 合并单元格（第1列=0, 第2列=1, 第13列=12）
+            byte[] mergedBytes = ExcelExportUtils.mergeConsecutiveSameCells(
+                    baos.toByteArray(), 0, 0, 1, 12
+            );
+
+            // 输出
+            response.getOutputStream().write(mergedBytes);
+            response.getOutputStream().flush();
+
         } catch (IOException e) {
             throw new ClientException("导出Excel失败: " + e.getMessage());
         }
@@ -423,7 +467,7 @@ public class TrainingProgramServiceImpl extends ServiceImpl<TrainingProgramMappe
                             .id(IdUtil.getSnowflakeNextId())
                             .trainingProgramId(Long.parseLong(param.getTrainingProgramId()))
                             .courseId(param.getCourseId())
-                            .courseNature(param.getCourseNature())  // 从课程中获取课程性质todo 待优化
+                            .courseNature(param.getCourseNature())  // 从课程中获取课程性质todo 待优化，对已存在的数据进行比对
                             .courseName(param.getCourseName())      // 从课程中获取课程名称
                             .collegeId(param.getCollegeId())
                             .majorId(param.getMajorId())
@@ -526,13 +570,15 @@ public class TrainingProgramServiceImpl extends ServiceImpl<TrainingProgramMappe
                 .collect(Collectors.groupingBy(TrainingProgramExcelTemplate::getElectiveGroupCode));
 
         // 创建分组，先检查是否存在
-        CourseExclusivityDO courseExclusivityDO = courseExclusivityService.selectByTpId(tpId.toString());
-        Long exclusivityId;
-        if (!Objects.isNull(courseExclusivityDO)) {
+        List<CourseExclusivityDO> courseExclusivityDOs = courseExclusivityService.selectByTpId(tpId.toString());
+
+        if (CollUtil.isNotEmpty(courseExclusivityDOs)) {
             // 存在的话，将详情表全部软删除，并获取版本号
-            exclusivityId = courseExclusivityDO.getId();
-            courseExclusivityService.deleteCourseExclusivity(List.of(exclusivityId.toString()));
-            courseExclusivityService.deleteCourseExclusivityDetail(List.of(exclusivityId.toString()));
+            List<String> exclusivityIds = courseExclusivityDOs.stream()
+                    .map(each -> each.getId().toString())
+                    .toList();
+            courseExclusivityService.deleteCourseExclusivity(List.of(tpId.toString()));
+            courseExclusivityService.deleteCourseExclusivityDetail(exclusivityIds);
         }
 
         for (Map.Entry<String, List<TrainingProgramExcelTemplate>> entry : groupMap.entrySet()) {
@@ -540,25 +586,16 @@ public class TrainingProgramServiceImpl extends ServiceImpl<TrainingProgramMappe
             List<TrainingProgramExcelTemplate> items = entry.getValue();
             Double requiredCredits = items.get(0).getElectiveRequiredCredits();
 
-            // 创建分组，先检查是否存在
-            CourseExclusivityDO courseExclusivityDO = courseExclusivityService.selectByTpId(tpId.toString());
-            Long exclusivityId;
-            if (!Objects.isNull(courseExclusivityDO)) {
-                // 存在的话，将详情表全部软删除，并获取版本号
-                exclusivityId = courseExclusivityDO.getId();
-                courseExclusivityService.deleteCourseExclusivity(List.of(exclusivityId.toString()));
-                courseExclusivityService.deleteCourseExclusivityDetail(List.of(exclusivityId.toString()));
-            }
+
             CourseExclusivitySaveReqDTO courseExclusivitySaveReqDTO = CourseExclusivitySaveReqDTO.builder()
                     .requiredCredits((int) Double.parseDouble(String.valueOf(requiredCredits)))
                     .groupCode(groupCode)
                     .trainingProgramId(tpId)
                     .version(version)
                     .build();
-            exclusivityId = courseExclusivityService.createCourseExclusivity(courseExclusivitySaveReqDTO);
 
             // 保存详细的分组关联关系
-            Long finalExclusivityId = exclusivityId;
+            Long finalExclusivityId = courseExclusivityService.createCourseExclusivity(courseExclusivitySaveReqDTO);
             List<CourseExclusivityAddCourseReqDTO> details = items.stream()
                     .map(item -> CourseExclusivityAddCourseReqDTO.builder()
                             .exclusivityId(finalExclusivityId.toString())

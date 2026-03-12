@@ -2,13 +2,16 @@ package com.ujs.trainingprogram.tp.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.ujs.trainingprogram.tp.dao.entity.CourseExclusivityDO;
+import com.ujs.trainingprogram.tp.dao.entity.CourseExclusivityDetailDO;
 import com.ujs.trainingprogram.tp.dto.req.courseexclusivity.CourseExclusivityAddCourseReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.courseexclusivity.CourseExclusivitySaveReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.courseexclusivity.CourseExclusivityUpdateReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.trainingprogram.TrainingProgramAddCourseReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.trainingprogram.TrainingProgramUpdateCourseReqDTO;
+import com.ujs.trainingprogram.tp.dto.resp.courseexclusivity.CourseToExclusivityRespDTO;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 课程分组接口层
@@ -25,7 +28,7 @@ public interface CourseExclusivityService extends IService<CourseExclusivityDO> 
     /**
      * 根据id删除课程分组
      *
-     * @param ids 课程分组id
+     * @param ids 培养计划id
      */
     void deleteCourseExclusivity(List<String> ids);
 
@@ -70,7 +73,32 @@ public interface CourseExclusivityService extends IService<CourseExclusivityDO> 
      * @param id    培养计划分组
      * @return      课程分组
      */
-    CourseExclusivityDO selectByTpId(String id);
+    List<CourseExclusivityDO> selectByTpId(String id);
+
+    /**
+     * 根据培养计划 Id 获取分组编码以及对应的课程
+     *
+     * @param id    培养计划 Id
+     * @return      分组编码
+     */
+    Map<String, List<String>> getElectiveGroupCode(String id);
+
+    /**
+     * 根据培养计划 Id (Key) 获取课程分组 (value)
+     *
+     * @param id    培养计划 Id
+     * @return      课程分组
+     */
+    List<CourseExclusivityDO> selectAllByTpId(String id);
+
+    /**
+     * 根据培养计划 Id 获取课程及其分组情况
+     *
+     * @param id    培养计划 Id
+     * @return      key 课程名称 value 返回体
+     */
+    Map<String, CourseToExclusivityRespDTO> selectCourseToExclusivity(String id);
+
 
 //
 //    /**
