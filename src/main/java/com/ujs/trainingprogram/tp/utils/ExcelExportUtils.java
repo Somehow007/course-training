@@ -2,7 +2,15 @@ package com.ujs.trainingprogram.tp.utils;
 
 import cn.hutool.core.util.StrUtil;
 import com.ujs.trainingprogram.tp.excel.template.TrainingProgramExcelTemplate;
+import org.apache.poi.ss.usermodel.BorderStyle;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.FillPatternType;
+import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.HorizontalAlignment;
+import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.VerticalAlignment;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -32,14 +40,15 @@ public class ExcelExportUtils {
             Sheet sheet = workbook.getSheetAt(sheetIndex);
             int lastRowNum = sheet.getLastRowNum();
 
-            if (lastRowNum < 1) {
-                return excelBytes; // 无数据或只有表头
+            if (lastRowNum >= 1) {
+                // 对每一列分别合并
+                for (int col : columnsToMerge) {
+                    mergeColumn(sheet, col, lastRowNum);
+                }
             }
 
-            // 对每一列分别合并
-            for (int col : columnsToMerge) {
-                mergeColumn(sheet, col, lastRowNum);
-            }
+            // 合并后统一设置单元格样式
+            applyStyles(workbook, sheet);
 
             try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
                 workbook.write(baos);
@@ -74,6 +83,115 @@ public class ExcelExportUtils {
                     }
                 }
                 startRow = currentRow + 1;
+            }
+        }
+    }
+
+    /**
+     * 统一设置导出 Excel 的样式：
+     * - 所有单元格无背景色、细边框
+     * - 表头（前两行）黑体、居中、9号
+     * - 数据行：
+     *   - 第1、2列：黑体、居中
+     *   - 第3、4列：宋体、左对齐、垂直居中
+     *   - 第5列及之后：宋体、居中
+     * - “合计/小计”行整行黑体、居中
+     */
+    private static void applyStyles(Workbook workbook, Sheet sheet) {
+        int lastRowNum = sheet.getLastRowNum();
+        if (lastRowNum < 0) {
+            return;
+        }
+
+        // 表头行数：当前模板为多级表头，两行
+        final int headRowCount = 2;
+
+        // 创建字体
+        Font simHeiFont = workbook.createFont();
+        simHeiFont.setFontName("SimHei");
+        simHeiFont.setFontHeightInPoints((short) 9);
+
+        Font simSunFont = workbook.createFont();
+        simSunFont.setFontName("SimSun");
+        simSunFont.setFontHeightInPoints((short) 9);
+
+        // 公共：细边框 + 无背景
+        CellStyle headStyle = workbook.createCellStyle();
+        headStyle.setFont(simHeiFont);
+        headStyle.setAlignment(HorizontalAlignment.CENTER);
+        headStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+        headStyle.setFillPattern(FillPatternType.NO_FILL);
+        headStyle.setBorderTop(BorderStyle.THIN);
+        headStyle.setBorderBottom(BorderStyle.THIN);
+        headStyle.setBorderLeft(BorderStyle.THIN);
+        headStyle.setBorderRight(BorderStyle.THIN);
+
+        CellStyle boldCenterStyle = workbook.createCellStyle();
+        boldCenterStyle.setFont(simHeiFont);
+        boldCenterStyle.setAlignment(HorizontalAlignment.CENTER);
+        boldCenterStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+        boldCenterStyle.setFillPattern(FillPatternType.NO_FILL);
+        boldCenterStyle.setBorderTop(BorderStyle.THIN);
+        boldCenterStyle.setBorderBottom(BorderStyle.THIN);
+        boldCenterStyle.setBorderLeft(BorderStyle.THIN);
+        boldCenterStyle.setBorderRight(BorderStyle.THIN);
+
+        CellStyle simSunLeftStyle = workbook.createCellStyle();
+        simSunLeftStyle.setFont(simSunFont);
+        simSunLeftStyle.setAlignment(HorizontalAlignment.LEFT);
+        simSunLeftStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+        simSunLeftStyle.setFillPattern(FillPatternType.NO_FILL);
+        simSunLeftStyle.setBorderTop(BorderStyle.THIN);
+        simSunLeftStyle.setBorderBottom(BorderStyle.THIN);
+        simSunLeftStyle.setBorderLeft(BorderStyle.THIN);
+        simSunLeftStyle.setBorderRight(BorderStyle.THIN);
+
+        CellStyle simSunCenterStyle = workbook.createCellStyle();
+        simSunCenterStyle.setFont(simSunFont);
+        simSunCenterStyle.setAlignment(HorizontalAlignment.CENTER);
+        simSunCenterStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+        simSunCenterStyle.setFillPattern(FillPatternType.NO_FILL);
+        simSunCenterStyle.setBorderTop(BorderStyle.THIN);
+        simSunCenterStyle.setBorderBottom(BorderStyle.THIN);
+        simSunCenterStyle.setBorderLeft(BorderStyle.THIN);
+        simSunCenterStyle.setBorderRight(BorderStyle.THIN);
+
+        for (int rowIndex = 0; rowIndex <= lastRowNum; rowIndex++) {
+            Row row = sheet.getRow(rowIndex);
+            if (row == null) {
+                continue;
+            }
+
+            short lastCellNum = row.getLastCellNum();
+            if (lastCellNum < 0) {
+                continue;
+            }
+
+            boolean isHeaderRow = rowIndex < headRowCount;
+
+            // 判断是否合计/小计行：第4列（索引3）文本为“合计”或“小计”
+            String courseName = getCellValue(sheet, rowIndex, 3);
+            boolean isSummaryRow = "合计".equals(courseName) || "小计".equals(courseName);
+
+            for (int colIndex = 0; colIndex < lastCellNum; colIndex++) {
+                Cell cell = row.getCell(colIndex);
+                if (cell == null) {
+                    continue;
+                }
+
+                if (isHeaderRow) {
+                    cell.setCellStyle(headStyle);
+                } else if (isSummaryRow) {
+                    cell.setCellStyle(boldCenterStyle);
+                } else {
+                    if (colIndex == 0 || colIndex == 1) {
+                        cell.setCellStyle(boldCenterStyle);
+                    } else if (colIndex == 2 || colIndex == 3) {
+                        cell.setCellStyle(simSunLeftStyle);
+                    } else {
+                        cell.setCellStyle(simSunCenterStyle);
+                    }
+                }
             }
         }
     }
