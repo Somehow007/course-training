@@ -6,10 +6,15 @@ spring:
     url: jdbc:mysql://localhost:3306/course_training?autoReconnect=true&useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
     username: root
     password: Sh20060401
-    data:
-      redis:
-        host: localhost
-        port: 6379
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  session:
+    store-type: redis
+    redis:
+      namespace: tp:session
+    timeout: 30m
   servlet:
     session:
       timeout: 30m
@@ -22,7 +27,7 @@ server:
       max: 200
   servlet:
     session:
-      timeout: 7d
+      timeout: 30m
       cookie:
         http-only: true
         secure: false

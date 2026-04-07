@@ -39,8 +39,8 @@
                 #{courseId}
             </foreach>
         </if>
-        <if test="courseNature != null">
-            AND c.course_nature = #{courseNature}
+        <if test="requestParam.courseNature != null">
+            AND c.course_nature = #{requestParam.courseNature}
         </if>
         <if test="requestParam.courseNames != null and requestParam.courseNames.size() >= 0">
             AND (
@@ -49,21 +49,30 @@
             </foreach>
             )
         </if>
-        <!-- 动态处理字典条件：根据ID或名称查询 -->
-        <if test="dictId != null">
-            AND c.course_type
-            <foreach collection="requestParam.collegeIds" item="collegeId" open="(" separator="," close=")">
-            #{collegeId}
+        <!-- 动态处理字典条件：根据 ID 或名称查询 -->
+        <if test="requestParam.dictIds != null and requestParam.dictIds.size() > 0">
+            AND c.dict_id IN
+            <foreach collection="requestParam.dictIds" item="dictId" open="(" separator="," close=")">
+                #{dictId}
             </foreach>
         </if>
-        <if test="dictName != null and dictName != '' and dictId == null">
-            AND dic.dict_name LIKE CONCAT('%', #{dictName}, '%')
+        <if test="requestParam.dictNames != null and requestParam.dictNames.size() > 0">
+            AND dic.dict_name IN
+            <foreach collection="requestParam.dictNames" item="dictName" open="(" separator="," close=")">
+                #{dictName}
+            </foreach>
         </if>
-        <if test="collegeId != null">
-            AND c.college_id = #{collegeId}
+        <if test="requestParam.collegeIds != null and requestParam.collegeIds.size() > 0">
+            AND c.college_id IN
+            <foreach collection="requestParam.collegeIds" item="collegeId" open="(" separator="," close=")">
+                #{collegeId}
+            </foreach>
         </if>
-        <if test="collegeName != null and collegeName != '' and collegeId == null">
-            AND col.college_name LIKE CONCAT('%', #{collegeName}, '%')
+        <if test="requestParam.collegeNames != null and requestParam.collegeNames.size() > 0">
+            AND col.college_name IN
+            <foreach collection="requestParam.collegeNames" item="collegeName" open="(" separator="," close=")">
+                #{collegeName}
+            </foreach>
         </if>
         ORDER BY c.create_time DESC
     </select>

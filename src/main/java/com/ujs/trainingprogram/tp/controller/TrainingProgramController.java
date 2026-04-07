@@ -1,13 +1,16 @@
 package com.ujs.trainingprogram.tp.controller;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.ujs.trainingprogram.tp.authentication.RequireAuthentication;
 import com.ujs.trainingprogram.tp.common.constant.AuthConstant;
 import com.ujs.trainingprogram.tp.common.result.Result;
 import com.ujs.trainingprogram.tp.common.web.Results;
 import com.ujs.trainingprogram.tp.dto.req.trainingprogram.TrainingProgramAddCourseReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.trainingprogram.TrainingProgramCreateReqDTO;
+import com.ujs.trainingprogram.tp.dto.req.trainingprogram.TrainingProgramPageReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.trainingprogram.TrainingProgramUpdateReqDTO;
 import com.ujs.trainingprogram.tp.dto.resp.trainingprogram.TrainingProgramDetailSelectRespDTO;
+import com.ujs.trainingprogram.tp.dto.resp.trainingprogram.TrainingProgramPageRespDTO;
 import com.ujs.trainingprogram.tp.service.TrainingProgramService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -25,6 +28,15 @@ import java.util.List;
 public class TrainingProgramController {
 
     private final TrainingProgramService trainingProgramService;
+
+    /**
+     * 分页查询培养计划
+     */
+    @Operation(summary = "分页查询培养计划")
+    @GetMapping("/api/training-program/page")
+    public Result<IPage<TrainingProgramPageRespDTO>> pageQueryTrainingProgram(TrainingProgramPageReqDTO requestParam) {
+        return Results.success(trainingProgramService.pageTrainingPrograms(requestParam));
+    }
 
     /**
      * 创建某专业的培养计划

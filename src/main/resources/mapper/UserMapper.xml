@@ -37,7 +37,7 @@
         </if>
         <!-- 动态处理学院条件：根据ID或名称查询 -->
         <if test="collegeId != null">
-            AND c.college_id = #{collegeId}
+            AND u.college_id = #{collegeId}
         </if>
         <if test="collegeName != null and collegeName != '' and collegeId == null">
             AND c.college_name LIKE CONCAT('%', #{collegeName}, '%')

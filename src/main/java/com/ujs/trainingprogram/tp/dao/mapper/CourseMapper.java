@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.ujs.trainingprogram.tp.dao.entity.CourseDO;
 import com.ujs.trainingprogram.tp.dto.req.course.CoursePageQueryReqDTO;
 import com.ujs.trainingprogram.tp.dto.resp.course.CoursePageQueryRespDTO;
+import org.apache.ibatis.annotations.Param;
 
 /**
  * 课程实体数据库持久层
@@ -14,5 +15,5 @@ public interface CourseMapper extends BaseMapper<CourseDO> {
     /**
      * 分页统计课程信息，只显示目前已有课程，不显示课程具体属于什么专业，不显示学分等信息
      */
-    IPage<CoursePageQueryRespDTO> pageCourseResults(CoursePageQueryReqDTO requestParam);
+    IPage<CoursePageQueryRespDTO> pageCourseResults(@Param("requestParam") CoursePageQueryReqDTO requestParam);
 }

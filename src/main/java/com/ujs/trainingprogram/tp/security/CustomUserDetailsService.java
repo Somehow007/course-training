@@ -8,6 +8,7 @@ import com.ujs.trainingprogram.tp.dao.entity.UserDO;
 import com.ujs.trainingprogram.tp.dao.mapper.SysDictMapper;
 import com.ujs.trainingprogram.tp.dao.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -18,6 +19,7 @@ import java.util.Objects;
 /**
  * Spring Security 加载用户信息
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {
@@ -28,6 +30,7 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        log.info("加载用户信息: {}", username);
         UserDO userDO = userMapper.selectOne(Wrappers.lambdaQuery(UserDO.class)
                 .eq(UserDO::getUsername, username)
                 .eq(UserDO::getDelFlag, 0));
@@ -49,6 +52,14 @@ public class CustomUserDetailsService implements UserDetailsService {
 
         Integer roleLevel = sysDictDO.getSortOrder();
         String roleName = sysDictDO.getDictName();
+        
+        log.info("用户 {} 权限信息: dictId={}, dictName={}, dictCode={}, sortOrder={}", 
+            username, dictId, sysDictDO.getDictName(), sysDictDO.getDictCode(), roleLevel);
+        
+        if (roleLevel == null) {
+            log.warn("用户 {} 的角色等级(sortOrder)为 null，将使用默认值 0", username);
+            roleLevel = 0;
+        }
 
         return new SecurityUserDetails(userDO, roleName, roleLevel);
     }

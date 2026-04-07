@@ -6,7 +6,9 @@ import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ujs.trainingprogram.tp.common.constant.RedisKeyConstant;
 import com.ujs.trainingprogram.tp.common.exception.ClientException;
@@ -20,6 +22,7 @@ import com.ujs.trainingprogram.tp.dto.req.courseexclusivity.CourseExclusivitySav
 import com.ujs.trainingprogram.tp.dto.req.trainingprogram.*;
 import com.ujs.trainingprogram.tp.dto.resp.courseexclusivity.CourseToExclusivityRespDTO;
 import com.ujs.trainingprogram.tp.dto.resp.trainingprogram.TrainingProgramDetailSelectRespDTO;
+import com.ujs.trainingprogram.tp.dto.resp.trainingprogram.TrainingProgramPageRespDTO;
 import com.ujs.trainingprogram.tp.dto.resp.trainingprogram.TrainingProgramSelectRespDTO;
 import com.ujs.trainingprogram.tp.excel.model.ExcelMergeRegion;
 import com.ujs.trainingprogram.tp.excel.template.TrainingProgramExcelTemplate;
@@ -75,6 +78,12 @@ public class TrainingProgramServiceImpl extends ServiceImpl<TrainingProgramMappe
     private final CourseExclusivityService courseExclusivityService;
     private final TransactionTemplate transactionTemplate;
 
+
+    @Override
+    public IPage<TrainingProgramPageRespDTO> pageTrainingPrograms(TrainingProgramPageReqDTO requestParam) {
+        Page<TrainingProgramPageRespDTO> page = new Page<>(requestParam.getCurrent(), requestParam.getSize());
+        return baseMapper.pageTrainingProgramResults(page, requestParam);
+    }
 
     @Override
     public void createTrainingProgram(TrainingProgramCreateReqDTO requestParam) {

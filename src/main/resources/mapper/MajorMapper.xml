@@ -25,6 +25,7 @@
         SELECT
             m.id,
             m.major_code,
+            m.college_id,
             m.major_name,
             c.college_name,
             m.course_num,

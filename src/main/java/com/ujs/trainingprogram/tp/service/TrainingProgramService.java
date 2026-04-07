@@ -1,9 +1,11 @@
 package com.ujs.trainingprogram.tp.service;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.ujs.trainingprogram.tp.dao.entity.TrainingProgramDO;
 import com.ujs.trainingprogram.tp.dto.req.trainingprogram.*;
 import com.ujs.trainingprogram.tp.dto.resp.trainingprogram.TrainingProgramDetailSelectRespDTO;
+import com.ujs.trainingprogram.tp.dto.resp.trainingprogram.TrainingProgramPageRespDTO;
 import com.ujs.trainingprogram.tp.dto.resp.trainingprogram.TrainingProgramSelectRespDTO;
 import com.ujs.trainingprogram.tp.excel.template.TrainingProgramExcelTemplate;
 import jakarta.servlet.http.HttpServletResponse;
@@ -15,6 +17,14 @@ import java.util.List;
  * 培养计划服务业务逻辑层
  */
 public interface TrainingProgramService extends IService<TrainingProgramDO> {
+
+    /**
+     * 分页查询培养计划
+     *
+     * @param requestParam 请求参数
+     * @return 分页结果
+     */
+    IPage<TrainingProgramPageRespDTO> pageTrainingPrograms(TrainingProgramPageReqDTO requestParam);
 
     /**
      * 创建培养计划

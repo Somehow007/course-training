@@ -7,6 +7,7 @@ import com.ujs.trainingprogram.tp.common.result.Result;
 import com.ujs.trainingprogram.tp.common.web.Results;
 import com.ujs.trainingprogram.tp.dto.req.sysdict.SysDictCreateReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.sysdict.SysDictPageQueryReqDTO;
+import com.ujs.trainingprogram.tp.dto.req.sysdict.SysDictUpdateReqDTO;
 import com.ujs.trainingprogram.tp.dto.resp.sysdict.SysDictPageQueryRespDTO;
 import com.ujs.trainingprogram.tp.service.SysDictService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -14,6 +15,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * 系统字典业务控制层
@@ -35,6 +38,14 @@ public class SysDictController {
     }
 
     @RequireAuthentication(AuthConstant.ACADEMIC_AFFAIRS_STAFF)
+    @Operation(summary = "更新系统字典")
+    @PutMapping("/api/sys-dict/mainAdmin/update")
+    public Result<Void> updateSysDict(@RequestBody SysDictUpdateReqDTO requestParam) {
+        sysDictService.updateSysDict(requestParam);
+        return Results.success();
+    }
+
+    @RequireAuthentication(AuthConstant.ACADEMIC_AFFAIRS_STAFF)
     @Operation(summary = "删除系统字典")
     @DeleteMapping("/api/sys-dict/mainAdmin/delete/{id}")
     public Result<Void> deleteSysDict(@PathVariable String id) {
@@ -47,6 +58,13 @@ public class SysDictController {
     @GetMapping("/api/sys-dict/page")
     public Result<IPage<SysDictPageQueryRespDTO>> pageQuerySysDict(SysDictPageQueryReqDTO requestParam) {
         return Results.success(sysDictService.pageQuerySysDict(requestParam));
+    }
+
+    @RequireAuthentication(AuthConstant.ACADEMIC_AFFAIRS_STAFF)
+    @Operation(summary = "获取所有字典类型")
+    @GetMapping("/api/sys-dict/types")
+    public Result<List<String>> listDictTypes() {
+        return Results.success(sysDictService.listDictTypes());
     }
 }
 

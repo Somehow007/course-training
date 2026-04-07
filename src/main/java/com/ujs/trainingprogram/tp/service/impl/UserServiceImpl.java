@@ -3,7 +3,9 @@ package com.ujs.trainingprogram.tp.service.impl;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ujs.trainingprogram.tp.common.exception.ClientException;
 import com.ujs.trainingprogram.tp.dao.entity.CollegeDO;
@@ -115,6 +117,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
     public IPage<UserPageQueryRespDTO> pageQueryUser(UserPageQueryReqDTO requestParam) {
 
         return baseMapper.pageUserResults(requestParam);
+    }
+
+    @Override
+    public void deleteUser(Long id) {
+        LambdaUpdateWrapper<UserDO> updateWrapper = Wrappers.lambdaUpdate(UserDO.class)
+                .eq(UserDO::getId, id)
+                .eq(UserDO::getDelFlag, 0)
+                .set(UserDO::getDelFlag, 1);
+        baseMapper.update(updateWrapper);
     }
 
     // 设置HTTP 响应头，浏览器进行下载

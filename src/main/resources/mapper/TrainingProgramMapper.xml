@@ -19,5 +19,36 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ujs.trainingprogram.tp.dao.mapper.TrainingProgramMapper">
 
+    <!-- 分页查询培养计划 -->
+    <select id="pageTrainingProgramResults" parameterType="com.ujs.trainingprogram.tp.dto.req.trainingprogram.TrainingProgramPageReqDTO"
+            resultType="com.ujs.trainingprogram.tp.dto.resp.trainingprogram.TrainingProgramPageRespDTO">
+        SELECT
+            tp.id,
+            tp.name,
+            tp.major_id AS majorId,
+            m.major_name AS majorName,
+            tp.college_id AS collegeId,
+            c.college_name AS collegeName,
+            tp.year,
+            tp.description,
+            tp.create_time,
+            tp.update_time
+        FROM training_program tp
+        LEFT JOIN major m ON tp.major_id = m.id AND m.del_flag = 0
+        LEFT JOIN college c ON tp.college_id = c.id AND c.del_flag = 0
+        <where>
+            tp.del_flag = 0
+            <if test="requestParam.majorId != null and requestParam.majorId != ''">
+                AND tp.major_id = #{requestParam.majorId}
+            </if>
+            <if test="requestParam.collegeId != null and requestParam.collegeId != ''">
+                AND tp.college_id = #{requestParam.collegeId}
+            </if>
+            <if test="requestParam.year != null">
+                AND tp.year = #{requestParam.year}
+            </if>
+        </where>
+        ORDER BY tp.create_time DESC
+    </select>
 
 </mapper>

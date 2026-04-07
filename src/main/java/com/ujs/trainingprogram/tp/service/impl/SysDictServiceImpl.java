@@ -13,6 +13,7 @@ import com.ujs.trainingprogram.tp.dao.entity.SysDictDO;
 import com.ujs.trainingprogram.tp.dao.mapper.SysDictMapper;
 import com.ujs.trainingprogram.tp.dto.req.sysdict.SysDictCreateReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.sysdict.SysDictPageQueryReqDTO;
+import com.ujs.trainingprogram.tp.dto.req.sysdict.SysDictUpdateReqDTO;
 import com.ujs.trainingprogram.tp.dto.resp.sysdict.SysDictPageQueryRespDTO;
 import com.ujs.trainingprogram.tp.service.SysDictService;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +21,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 系统字典业务逻辑实现层
@@ -41,6 +43,16 @@ public class SysDictServiceImpl extends ServiceImpl<SysDictMapper, SysDictDO> im
             sysDictMapper.insert(sysDictDO);
         } catch (DuplicateKeyException ex) {
             throw new ClientException("创建系统字典失败：重复创建");
+        }
+    }
+
+    @Override
+    public void updateSysDict(SysDictUpdateReqDTO requestParam) {
+        SysDictDO sysDictDO = BeanUtil.toBean(requestParam, SysDictDO.class);
+        try {
+            sysDictMapper.updateById(sysDictDO);
+        } catch (DuplicateKeyException ex) {
+            throw new ClientException("更新系统字典失败：字典编码重复");
         }
     }
 
@@ -77,5 +89,17 @@ public class SysDictServiceImpl extends ServiceImpl<SysDictMapper, SysDictDO> im
                 .eq(SysDictDO::getDictType, "course_type")
                 .eq(SysDictDO::getDelFlag, 0);
         return baseMapper.selectList(queryWrapper);
+    }
+
+    @Override
+    public List<String> listDictTypes() {
+        LambdaQueryWrapper<SysDictDO> queryWrapper = Wrappers.lambdaQuery(SysDictDO.class)
+                .select(SysDictDO::getDictType)
+                .eq(SysDictDO::getDelFlag, 0)
+                .groupBy(SysDictDO::getDictType);
+        return baseMapper.selectList(queryWrapper).stream()
+                .map(SysDictDO::getDictType)
+                .filter(StrUtil::isNotBlank)
+                .collect(Collectors.toList());
     }
 }

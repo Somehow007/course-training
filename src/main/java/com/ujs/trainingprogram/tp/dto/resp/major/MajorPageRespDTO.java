@@ -20,6 +20,11 @@ public class MajorPageRespDTO {
     private String majorCode;
 
     /**
+     * 学院ID
+     */
+    private Long collegeId;
+
+    /**
      * 学院名称
      */
     private String collegeName;

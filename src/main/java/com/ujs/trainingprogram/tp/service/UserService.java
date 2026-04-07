@@ -28,4 +28,11 @@ public interface UserService extends IService<UserDO> {
      * @return 返回结果
      */
     IPage<UserPageQueryRespDTO> pageQueryUser(UserPageQueryReqDTO requestParam);
+
+    /**
+     * 删除用户信息（软删除）
+     *
+     * @param id 用户ID
+     */
+    void deleteUser(Long id);
 }

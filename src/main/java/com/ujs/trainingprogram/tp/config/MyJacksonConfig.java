@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
@@ -32,6 +33,22 @@ public class MyJacksonConfig {
                         jsonGenerator.writeString("");
                     }
                 });
+
+        SimpleModule simpleModule = new SimpleModule();
+        simpleModule.addSerializer(Long.class, new JsonSerializer<Long>() {
+            @Override
+            public void serialize(Long value, JsonGenerator jsonGenerator, SerializerProvider serializerProvider) throws IOException {
+                jsonGenerator.writeString(String.valueOf(value));
+            }
+        });
+        simpleModule.addSerializer(Long.TYPE, new JsonSerializer<Long>() {
+            @Override
+            public void serialize(Long value, JsonGenerator jsonGenerator, SerializerProvider serializerProvider) throws IOException {
+                jsonGenerator.writeString(String.valueOf(value));
+            }
+        });
+        mapper.registerModule(simpleModule);
+
         return mapper;
     }
 }

@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.ujs.trainingprogram.tp.dao.entity.SysDictDO;
 import com.ujs.trainingprogram.tp.dto.req.sysdict.SysDictCreateReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.sysdict.SysDictPageQueryReqDTO;
+import com.ujs.trainingprogram.tp.dto.req.sysdict.SysDictUpdateReqDTO;
 import com.ujs.trainingprogram.tp.dto.resp.sysdict.SysDictPageQueryRespDTO;
 
 import java.util.List;
@@ -14,38 +15,17 @@ import java.util.List;
  */
 public interface SysDictService extends IService<SysDictDO> {
 
-    /**
-     * 创建系统字典
-     *
-     * @param requestParam 请求参数
-     */
     void createSysDict(SysDictCreateReqDTO requestParam);
 
-    /**
-     * 删除系统字典
-     *
-     * @param id 系统字典id
-     */
+    void updateSysDict(SysDictUpdateReqDTO requestParam);
+
     void deleteSysDict(Long id);
 
-    /**
-     * 分页查询系统字典
-     *
-     * @param requestParam 请求参数
-     */
     IPage<SysDictPageQueryRespDTO> pageQuerySysDict(SysDictPageQueryReqDTO requestParam);
 
-    /**
-     * 查询所有系统字典
-     *
-     * @return  系统字典
-     */
     List<SysDictDO> listSysDict();
 
-    /**
-     * 查询课程类别的数据字典信息
-     *
-     * @return  课程类别的数据字典
-     */
     List<SysDictDO> listCourseTypeSysDict();
+
+    List<String> listDictTypes();
 }
