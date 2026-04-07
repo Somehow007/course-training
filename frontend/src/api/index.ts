@@ -1,0 +1,6 @@
+export * from './user'
+export * from './college'
+export * from './major'
+export * from './course'
+export * from './training-program'
+export * from './sys-dict'

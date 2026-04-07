@@ -1,0 +1,101 @@
+@use './variables.scss' as *;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #app {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+// 滚动条样式
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #dcdfe6;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-track {
+  background-color: #f5f7fa;
+}
+
+// 搜索框样式优化
+.el-form--inline {
+  .el-form-item {
+    .el-input,
+    .el-select {
+      width: 200px;
+      min-width: 200px;
+    }
+  }
+}
+
+// 对话框中的表单样式优化
+.el-dialog {
+  .el-form-item {
+    .el-input,
+    .el-select {
+      width: 100%;
+    }
+  }
+}
+
+// 下拉框样式优化
+.el-select {
+  .el-input__wrapper {
+    transition: all 0.3s ease;
+  }
+  
+  .el-input__inner {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+// 下拉面板样式优化
+.el-select-dropdown {
+  .el-select-dropdown__item {
+    padding: 0 20px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+// 自定义下拉面板样式
+.custom-select-dropdown {
+  min-width: 200px !important;
+  
+  .el-select-dropdown__item {
+    padding: 0 20px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+// 输入框样式优化
+.el-input {
+  .el-input__wrapper {
+    transition: all 0.3s ease;
+  }
+  
+  .el-input__inner {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
