@@ -35,6 +35,13 @@ public interface CourseService extends IService<CourseDO> {
     void deleteCourse(List<String> ids);
 
     /**
+     * 启用课程
+     *
+     * @param ids 课程id列表
+     */
+    void enableCourse(List<String> ids);
+
+    /**
      * 更新课程
      *
      * @param requestParam  请求参数

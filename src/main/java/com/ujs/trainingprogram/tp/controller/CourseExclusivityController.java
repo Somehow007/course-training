@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * 课程分组管理层
- * todo 非对外接口
+ * 非对外接口
  */
 @RestController
 @Tag(name = "课程分组管理")

@@ -26,5 +26,10 @@ export const collegeApi = {
   // 删除学院
   delete(id: string): Promise<void> {
     return request.delete(`/college/mainAdmin/delete/${id}`)
+  },
+
+  // 启用学院
+  enable(id: string): Promise<void> {
+    return request.put(`/college/mainAdmin/enable/${id}`)
   }
 }

@@ -73,4 +73,15 @@ public class CourseController {
         return Results.success();
     }
 
+    /**
+     * 启用课程，可批量启用
+     */
+    @RequireAuthentication(AuthConstant.ACADEMIC_AFFAIRS_STAFF)
+    @Operation(summary = "启用课程")
+    @PutMapping("/api/course/mainAdmin/enable")
+    public Result<Void> enableCourse(@RequestBody List<String> ids) {
+        courseService.enableCourse(ids);
+        return Results.success();
+    }
+
 }

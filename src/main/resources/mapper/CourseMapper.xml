@@ -26,13 +26,14 @@
         c.id AS courseId,
         c.course_name AS courseName,
         c.course_nature AS courseNature,
+        c.del_flag AS delFlag,
         dic.dict_name AS courseType,
         col.college_name AS collegeName
         FROM
         course c
         LEFT JOIN sys_dict dic ON c.dict_id = dic.id
         LEFT JOIN college col ON c.college_id = col.id
-        WHERE c.del_flag = 0
+        WHERE 1=1
         <if test="requestParam.courseIds != null and requestParam.courseIds.size() >= 0">
             AND c.id IN
             <foreach collection="requestParam.courseIds" item="courseId" open="(" separator="," close=")">

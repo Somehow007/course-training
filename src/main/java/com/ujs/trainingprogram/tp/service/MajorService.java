@@ -36,6 +36,13 @@ public interface MajorService extends IService<MajorDO> {
     void deleteMajor(Long id);
 
     /**
+     * 启用专业
+     *
+     * @param id 专业编号
+     */
+    void enableMajor(Long id);
+
+    /**
      * 更新专业
      *
      * @param requestParam 更新专业请求参数

@@ -95,6 +95,23 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, CourseDO> imple
     }
 
     @Override
+    public void enableCourse(List<String> ids) {
+        if (ids == null || ids.isEmpty()) {
+            throw new ClientException("启用失败：课程 ID 列表不能为空");
+        }
+
+        List<Long> longIds = ids.stream()
+                .map(Long::parseLong)
+                .toList();
+
+        LambdaUpdateWrapper<CourseDO> updateWrapper = Wrappers.lambdaUpdate(CourseDO.class)
+                .in(CourseDO::getId, longIds)
+                .eq(CourseDO::getDelFlag, 1)
+                .set(CourseDO::getDelFlag, 0);
+        baseMapper.update(updateWrapper);
+    }
+
+    @Override
     public void updateCourse(CourseUpdateReqDTO requestParam) {
         LambdaUpdateWrapper<CourseDO> updateWrapper = Wrappers.lambdaUpdate(CourseDO.class)
                 .eq(CourseDO::getId, requestParam.getId())

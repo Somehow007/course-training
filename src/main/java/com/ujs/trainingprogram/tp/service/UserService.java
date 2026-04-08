@@ -6,13 +6,11 @@ import com.ujs.trainingprogram.tp.dao.entity.UserDO;
 import com.ujs.trainingprogram.tp.dto.req.user.UserPageQueryReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.user.UserRegistryReqDTO;
 import com.ujs.trainingprogram.tp.dto.resp.user.UserPageQueryRespDTO;
-import jakarta.servlet.http.HttpServletResponse;
 
 /**
  * 用户信息业务逻辑层
  */
 public interface UserService extends IService<UserDO> {
-    public void exportUserToExcel(HttpServletResponse response);
 
     /**
      * 注册用户信息
@@ -35,4 +33,11 @@ public interface UserService extends IService<UserDO> {
      * @param id 用户ID
      */
     void deleteUser(Long id);
+
+    /**
+     * 启用用户信息
+     *
+     * @param id 用户ID
+     */
+    void enableUser(Long id);
 }

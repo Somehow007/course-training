@@ -26,5 +26,10 @@ export const majorApi = {
   // 删除专业
   delete(id: string): Promise<void> {
     return request.delete(`/api/major/mainAdmin/delete/${id}`)
+  },
+
+  // 启用专业
+  enable(id: string): Promise<void> {
+    return request.put(`/api/major/mainAdmin/enable/${id}`)
   }
 }

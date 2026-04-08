@@ -65,6 +65,13 @@ public interface CollegeService extends IService<CollegeDO> {
     void deleteCollege(Long id);
 
     /**
+     * 启用学院
+     *
+     * @param id 学院主键
+     */
+    void enableCollege(Long id);
+
+    /**
      *
      * 获取所有现存学院信息
      *

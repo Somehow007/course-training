@@ -51,6 +51,14 @@ public class CollegeController {
     }
 
     @RequireAuthentication(AuthConstant.ACADEMIC_AFFAIRS_STAFF)
+    @Operation(summary = "启用学院")
+    @PutMapping("/college/mainAdmin/enable/{id}")
+    public Result<Void> enableCollege(@PathVariable String id) {
+        collegeService.enableCollege(Long.parseLong(id));
+        return Results.success();
+    }
+
+    @RequireAuthentication(AuthConstant.ACADEMIC_AFFAIRS_STAFF)
     @Operation(summary = "修改学院")
     @PutMapping("/college/mainAdmin/update")
     public Result<Void> updateCollege(@RequestBody CollegeUpdateReqDTO requestParam) {

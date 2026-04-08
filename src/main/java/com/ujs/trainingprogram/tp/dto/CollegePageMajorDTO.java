@@ -1,6 +1,5 @@
 package com.ujs.trainingprogram.tp.dto;
 
-import com.baomidou.mybatisplus.annotation.TableId;
 import lombok.Data;
 
 /**
@@ -43,4 +42,9 @@ public class CollegePageMajorDTO {
      * 专业分类（0:工学 1:理学 2:文科）
      */
     private String category;
+
+    /**
+     * 删除标识（0:未删除 1:已删除）
+     */
+    private Integer delFlag;
 }

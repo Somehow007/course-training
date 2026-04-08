@@ -25,7 +25,10 @@
       <div class="toolbar">
         <el-button v-permission="'100'" type="primary" @click="handleAdd">新增课程</el-button>
         <el-button v-permission="'100'" type="danger" :disabled="!selectedIds.length" @click="handleBatchDelete">
-          批量删除
+          批量禁用
+        </el-button>
+        <el-button v-permission="'100'" type="success" :disabled="!selectedIds.length" @click="handleBatchEnable">
+          批量启用
         </el-button>
       </div>
 
@@ -46,10 +49,24 @@
             <CourseNatureTag :nature="row.courseNature" />
           </template>
         </el-table-column>
+        <el-table-column label="状态" width="100">
+          <template #default="{ row }">
+            <el-tag :type="row.delFlag === 1 ? 'danger' : 'success'">
+              {{ row.delFlag === 1 ? '禁用' : '启用' }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="200">
           <template #default="{ row }">
             <el-button v-permission="'100'" type="primary" link @click="handleEdit(row)">编辑</el-button>
-            <el-button v-permission="'100'" type="danger" link @click="handleDelete(row)">删除</el-button>
+            <el-button 
+              v-permission="'100'" 
+              :type="row.delFlag === 1 ? 'success' : 'danger'" 
+              link 
+              @click="handleToggleStatus(row)"
+            >
+              {{ row.delFlag === 1 ? '启用' : '禁用' }}
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -187,21 +204,39 @@ function handleEdit(row: CoursePageItem) {
   dialogVisible.value = true
 }
 
-// 删除
-async function handleDelete(row: CoursePageItem) {
-  await ElMessageBox.confirm('确定要删除该课程吗？', '提示', { type: 'warning' })
-  await courseApi.delete([row.courseId])
-  ElMessage.success('删除成功')
+// 切换课程状态
+async function handleToggleStatus(row: CoursePageItem) {
+  const action = row.delFlag === 1 ? '启用' : '禁用'
+  await ElMessageBox.confirm(`确定要${action}该课程吗？`, '提示', { type: 'warning' })
+  
+  if (row.delFlag === 1) {
+    await courseApi.enable([row.courseId])
+    ElMessage.success('启用成功')
+  } else {
+    await courseApi.delete([row.courseId])
+    ElMessage.success('禁用成功')
+  }
+  
   loadData()
 }
 
-// 批量删除
+// 批量禁用
 async function handleBatchDelete() {
-  await ElMessageBox.confirm(`确定要删除选中的 ${selectedIds.value.length} 门课程吗？`, '提示', {
+  await ElMessageBox.confirm(`确定要禁用选中的 ${selectedIds.value.length} 门课程吗？`, '提示', {
     type: 'warning'
   })
   await courseApi.delete(selectedIds.value)
-  ElMessage.success('删除成功')
+  ElMessage.success('禁用成功')
+  loadData()
+}
+
+// 批量启用
+async function handleBatchEnable() {
+  await ElMessageBox.confirm(`确定要启用选中的 ${selectedIds.value.length} 门课程吗？`, '提示', {
+    type: 'warning'
+  })
+  await courseApi.enable(selectedIds.value)
+  ElMessage.success('启用成功')
   loadData()
 }
 

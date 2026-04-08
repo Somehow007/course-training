@@ -42,4 +42,9 @@ public class CollegePageRespDTO {
      * 专业数
      */
     private Integer majorNum;
+
+    /**
+     * 删除标识（0:未删除 1:已删除）
+     */
+    private Integer delFlag;
 }

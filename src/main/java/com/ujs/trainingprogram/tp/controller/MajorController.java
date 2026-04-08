@@ -50,6 +50,17 @@ public class MajorController {
     }
 
     /**
+     * 启用专业
+     */
+    @RequireAuthentication(AuthConstant.ACADEMIC_AFFAIRS_STAFF)
+    @Operation(summary = "启用专业")
+    @PutMapping("/api/major/mainAdmin/enable/{id}")
+    public Result<Void> enableMajor(@PathVariable String id) {
+        majorService.enableMajor(Long.parseLong(id));
+        return Results.success();
+    }
+
+    /**
      * 修改专业
      */
     @RequireAuthentication(AuthConstant.ACADEMIC_AFFAIRS_STAFF)

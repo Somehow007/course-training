@@ -113,13 +113,19 @@ public class TrainingProgramServiceImpl extends ServiceImpl<TrainingProgramMappe
         if (StrUtil.isBlank(requestParam.getCourseId()) || StrUtil.isBlank(requestParam.getTrainingProgramId())) {
             throw new ClientException("添加课程至培养计划失败，请传入待添加的培养计划与课程");
         }
+
+        if (StrUtil.isNotBlank(String.valueOf(requestParam.getMajorId()))) {
+            throw new ClientException("添加课程至培养计划失败，请确保该专业信息被传入。");
+        }
+
         TrainingProgramDO trainingProgramDO = trainingProgramMapper.selectById(requestParam.getTrainingProgramId());
         if (Objects.isNull(trainingProgramDO)) {
-            throw new ClientException("添加课程至培养计划失败，请传入待添加的培养计划");
+            throw new ClientException("添加课程至培养计划失败，此培养计划不存在。");
         }
+
         CourseDO courseDO = courseMapper.selectById(requestParam.getCourseId());
         if (Objects.isNull(courseDO)) {
-            throw new ClientException("添加课程至培养计划失败，请传入待添加的课程");
+            throw new ClientException("添加课程至培养计划失败，请传入待添加的课程。");
         }
 
         TrainingProgramDetailDO trainingProgramDetailDO = BeanUtil.toBean(requestParam, TrainingProgramDetailDO.class);
@@ -127,11 +133,10 @@ public class TrainingProgramServiceImpl extends ServiceImpl<TrainingProgramMappe
         trainingProgramDetailDO.setCourseNature(courseDO.getCourseNature());
         trainingProgramDetailDO.setCourseName(courseDO.getCourseName());
 
+
         trainingProgramDetailMapper.insert(trainingProgramDetailDO);
 
-        if (StrUtil.isNotBlank(String.valueOf(requestParam.getMajorId()))) {
-            majorMapper.incrementCourseNum(Long.parseLong(requestParam.getMajorId()), 1);
-        }
+        majorMapper.incrementCourseNum(Long.parseLong(requestParam.getMajorId()), 1);
     }
 
     @Override
@@ -415,7 +420,7 @@ public class TrainingProgramServiceImpl extends ServiceImpl<TrainingProgramMappe
     public void batchSaveTrainingProgramDetailsFromExcel(List<TrainingProgramExcelTemplate> dataList, Long tpId, Long majorId, Integer version) {
 
         // 检查数据中的课程与学院是否都存在
-        judgeCourseAndCourseIsExist(dataList);
+        judgeCourseAndCollegeIsExist(dataList);
         // 分组的课程和没有分组的课程
         List<TrainingProgramExcelTemplate> groupRequiredList = new ArrayList<>();
 
@@ -477,7 +482,7 @@ public class TrainingProgramServiceImpl extends ServiceImpl<TrainingProgramMappe
                             .id(IdUtil.getSnowflakeNextId())
                             .trainingProgramId(Long.parseLong(param.getTrainingProgramId()))
                             .courseId(param.getCourseId())
-                            .courseNature(param.getCourseNature())  // 从课程中获取课程性质todo 待优化，对已存在的数据进行比对
+                            .courseNature(param.getCourseNature())  // 从课程中获取课程性质
                             .courseName(param.getCourseName())      // 从课程中获取课程名称
                             .collegeId(param.getCollegeId())
                             .majorId(param.getMajorId())
@@ -530,7 +535,6 @@ public class TrainingProgramServiceImpl extends ServiceImpl<TrainingProgramMappe
      */
     private List<TrainingProgramAddCourseFromExcelReqDTO> convertExcelToDTOs(List<TrainingProgramExcelTemplate> excelData, Long tpId, Long majorId) {
         List<TrainingProgramAddCourseFromExcelReqDTO> requestParams = new ArrayList<>();
-
 
         for(TrainingProgramExcelTemplate data: excelData) {
             // 从缓存获取课程 ID
@@ -758,7 +762,7 @@ public class TrainingProgramServiceImpl extends ServiceImpl<TrainingProgramMappe
         };
     }
 
-    private void judgeCourseAndCourseIsExist(List<TrainingProgramExcelTemplate> requestParam) {
+    private void judgeCourseAndCollegeIsExist(List<TrainingProgramExcelTemplate> requestParam) {
         Set<String> courseFailConvert = new LinkedHashSet<>();
         Set<String> collegeFailConvert = new LinkedHashSet<>();
 

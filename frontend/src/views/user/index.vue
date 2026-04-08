@@ -25,9 +25,23 @@
         <el-table-column prop="username" label="用户名" />
         <el-table-column prop="collegeName" label="所属学院" />
         <el-table-column prop="dictName" label="用户身份" />
+        <el-table-column label="用户状态" width="100">
+          <template #default="{ row }">
+            <el-tag :type="row.delFlag === 1 ? 'danger' : 'success'">
+              {{ row.delFlag === 1 ? '禁用' : '启用' }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="200">
           <template #default="{ row }">
-            <el-button v-permission="'100'" type="danger" link @click="handleDelete(row)">删除</el-button>
+            <el-button 
+              v-permission="'100'" 
+              :type="row.delFlag === 1 ? 'success' : 'danger'" 
+              link 
+              @click="handleToggleStatus(row)"
+            >
+              {{ row.delFlag === 1 ? '启用' : '禁用' }}
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -138,11 +152,19 @@ function handleAdd() {
   dialogVisible.value = true
 }
 
-// 删除
-async function handleDelete(row: UserPageItem) {
-  await ElMessageBox.confirm('确定要删除该用户吗？', '提示', { type: 'warning' })
-  await userApi.delete(row.id)
-  ElMessage.success('删除成功')
+// 切换用户状态
+async function handleToggleStatus(row: UserPageItem) {
+  const action = row.delFlag === 1 ? '启用' : '禁用'
+  await ElMessageBox.confirm(`确定要${action}该用户吗？`, '提示', { type: 'warning' })
+  
+  if (row.delFlag === 1) {
+    await userApi.enable(row.id)
+    ElMessage.success('启用成功')
+  } else {
+    await userApi.disable(row.id)
+    ElMessage.success('禁用成功')
+  }
+  
   loadData()
 }
 

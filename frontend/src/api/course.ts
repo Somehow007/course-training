@@ -26,5 +26,10 @@ export const courseApi = {
   // 删除课程（支持批量）
   delete(ids: string[]): Promise<void> {
     return request.delete('/api/course/mainAdmin/delete', { data: ids })
+  },
+
+  // 启用课程（支持批量）
+  enable(ids: string[]): Promise<void> {
+    return request.put('/api/course/mainAdmin/enable', ids)
   }
 }

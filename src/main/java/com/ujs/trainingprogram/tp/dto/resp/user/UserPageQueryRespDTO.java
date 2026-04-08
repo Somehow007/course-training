@@ -27,4 +27,9 @@ public class UserPageQueryRespDTO {
      * 用户权限名称
      */
     private String dictName;
+
+    /**
+     * 删除标识（0:未删除 1:已删除）
+     */
+    private Integer delFlag;
 }

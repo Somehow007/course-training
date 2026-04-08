@@ -29,6 +29,7 @@
             m.major_name,
             c.college_name,
             m.course_num,
+            m.del_flag AS delFlag,
             CASE m.category
                 WHEN 0 THEN '工学'
                 WHEN 1 THEN '理学'
@@ -38,9 +39,9 @@
             m.create_time,
             m.update_time
         FROM major m
-        LEFT JOIN college c ON m.college_id = c.id AND c.del_flag = 0
+        LEFT JOIN college c ON m.college_id = c.id
         <where>
-            m.del_flag = 0
+            1=1
             <if test="requestParam.majorNames != null and requestParam.majorNames.size() >= 0">
                 AND (
                 <foreach collection="requestParam.majorNames" item="majorName" open="" separator=" OR " close="">

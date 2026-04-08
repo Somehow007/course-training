@@ -46,7 +46,6 @@ public class MajorDO extends BaseDO {
 
     /**
      * 课程总数
-     * todo 因选课问题，每个专业每个人的课程数会有差异，因此此字段可删除
      */
     private Integer courseNum;
 }

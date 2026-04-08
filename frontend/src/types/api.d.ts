@@ -53,6 +53,7 @@ export interface UserPageItem {
   username: string
   collegeName: string
   dictName: string
+  delFlag: number
 }
 
 // 学院相关类型
@@ -77,6 +78,7 @@ export interface CollegePageItem {
   majors: MajorInfo[]
   courseNum: number
   majorNum: number
+  delFlag: number
 }
 
 export interface MajorInfo {
@@ -117,6 +119,7 @@ export interface MajorPageItem {
   majorName: string
   courseNum: number
   category: string
+  delFlag: number
 }
 
 // 课程相关类型
@@ -153,6 +156,7 @@ export interface CoursePageItem {
   courseNatureDesc: string
   courseName: string
   collegeName: string
+  delFlag: number
 }
 
 // 培养计划相关类型

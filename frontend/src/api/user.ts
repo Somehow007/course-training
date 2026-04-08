@@ -29,8 +29,13 @@ export const userApi = {
     return request.get('/api/user/mainAdmin/page', { params })
   },
 
-  // 删除用户
-  delete(id: string): Promise<void> {
+  // 禁用用户（软删除）
+  disable(id: string): Promise<void> {
     return request.delete(`/api/user/mainAdmin/delete/${id}`)
+  },
+
+  // 启用用户（恢复）
+  enable(id: string): Promise<void> {
+    return request.put(`/api/user/mainAdmin/enable/${id}`)
   }
 }

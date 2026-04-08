@@ -62,6 +62,14 @@ public class UserController {
         return Results.success();
     }
 
+    @RequireAuthentication(AuthConstant.ACADEMIC_AFFAIRS_STAFF)
+    @Operation(summary = "启用用户")
+    @PutMapping("/api/user/mainAdmin/enable/{id}")
+    public Result<Void> enableUser(@PathVariable String id) {
+        userService.enableUser(Long.parseLong(id));
+        return Results.success();
+    }
+
     @Operation(summary = "用户登陆")
     @PostMapping("/api/login")
     public Result<?> login(@RequestBody @Valid UserLoginReqDTO requestParam, HttpServletRequest request) {

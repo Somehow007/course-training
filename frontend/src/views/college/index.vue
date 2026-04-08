@@ -22,10 +22,24 @@
         <el-table-column prop="collegeName" label="学院名称" />
         <el-table-column prop="majorNum" label="专业数量" width="100" />
         <el-table-column prop="courseNum" label="课程数量" width="100" />
+        <el-table-column label="状态" width="100">
+          <template #default="{ row }">
+            <el-tag :type="row.delFlag === 1 ? 'danger' : 'success'">
+              {{ row.delFlag === 1 ? '禁用' : '启用' }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="200">
           <template #default="{ row }">
             <el-button v-permission="'100'" type="primary" link @click="handleEdit(row)">编辑</el-button>
-            <el-button v-permission="'100'" type="danger" link @click="handleDelete(row)">删除</el-button>
+            <el-button 
+              v-permission="'100'" 
+              :type="row.delFlag === 1 ? 'success' : 'danger'" 
+              link 
+              @click="handleToggleStatus(row)"
+            >
+              {{ row.delFlag === 1 ? '启用' : '禁用' }}
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -130,11 +144,19 @@ function handleEdit(row: CollegePageItem) {
   dialogVisible.value = true
 }
 
-// 删除
-async function handleDelete(row: CollegePageItem) {
-  await ElMessageBox.confirm('确定要删除该学院吗？', '提示', { type: 'warning' })
-  await collegeApi.delete(row.id)
-  ElMessage.success('删除成功')
+// 切换学院状态
+async function handleToggleStatus(row: CollegePageItem) {
+  const action = row.delFlag === 1 ? '启用' : '禁用'
+  await ElMessageBox.confirm(`确定要${action}该学院吗？`, '提示', { type: 'warning' })
+  
+  if (row.delFlag === 1) {
+    await collegeApi.enable(row.id)
+    ElMessage.success('启用成功')
+  } else {
+    await collegeApi.delete(row.id)
+    ElMessage.success('禁用成功')
+  }
+  
   loadData()
 }
 

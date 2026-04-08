@@ -3,7 +3,6 @@ package com.ujs.trainingprogram.tp.service.impl;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.IdUtil;
-import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -16,24 +15,26 @@ import com.baomidou.mybatisplus.extension.toolkit.SqlHelper;
 import com.ujs.trainingprogram.tp.common.constant.RedisKeyConstant;
 import com.ujs.trainingprogram.tp.common.exception.ClientException;
 import com.ujs.trainingprogram.tp.common.exception.ServiceException;
-import com.ujs.trainingprogram.tp.dao.mapper.CollegeMapper;
 import com.ujs.trainingprogram.tp.dao.entity.CollegeDO;
+import com.ujs.trainingprogram.tp.dao.mapper.CollegeMapper;
 import com.ujs.trainingprogram.tp.dto.CollegePageMajorDTO;
+import com.ujs.trainingprogram.tp.dto.req.college.CollegeMajorPageRespDTO;
 import com.ujs.trainingprogram.tp.dto.req.college.CollegePageReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.college.CollegeSaveReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.college.CollegeUpdateReqDTO;
-import com.ujs.trainingprogram.tp.dto.req.college.CollegeMajorPageRespDTO;
 import com.ujs.trainingprogram.tp.dto.resp.college.CollegePageRespDTO;
 import com.ujs.trainingprogram.tp.service.CollegeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.redisson.api.RedissonClient;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -88,15 +89,6 @@ public class CollegeServiceImpl extends ServiceImpl<CollegeMapper, CollegeDO> im
         return getBaseMapper().selectList(wrapper);
     }
 
-
-//    @Override
-//    public void countCollegeCourseNums() {
-//        List<CollegeDO> list = getBaseMapper().selectList(new QueryWrapper<>());
-//        list.forEach(college ->
-//                college.setCourseNum(courseService.selectCountWithCollege(college.getCollegeId())));
-//        saveOrUpdateBatch(list);
-//    }
-
     @Override
     public IPage<CollegePageRespDTO> pageCollege(CollegePageReqDTO requestParam) {
         Page<CollegeDO> page = new Page<>(requestParam.getCurrent(), requestParam.getSize());
@@ -147,34 +139,10 @@ public class CollegeServiceImpl extends ServiceImpl<CollegeMapper, CollegeDO> im
                     .majors(majorList)
                     .majorNum(majorNum)
                     .courseNum(totalCourseNum)
+                    .delFlag(first.getDelFlag())
                     .build();
         }).collect(Collectors.toList());
     }
-
-//    /**
-//     * 自定义查询
-//     * @param cur
-//     * @param size
-//     * @param wrapper
-//     * @return
-//     */
-//    @Override
-//    public ResultData (long cur, long size, QueryWrapper<CollegeDO> wrapper) {
-//        Page<CollegeDO> page = new Page<>(cur, size);
-//        Page<CollegeDO> collegePage = getBaseMapper().selectPage(page, wrapper);
-//        ResultData resultData = new ResultData();
-//        List<CollegeDO> records = collegePage.getRecords();
-//        records.forEach(college -> {
-//            List<MajorDO> majorDOS = majorService.getMajorByCollegeId(college.getCollegeId());
-//            college.setCourseNum(courseService.selectCountWithCollege(college.getCollegeId()));
-//        });
-//        resultData.setData(records);
-//        resultData.setCur(collegePage.getCurrent());
-//        resultData.setSize(collegePage.getSize());
-//        resultData.setTotal(collegePage.getTotal());
-//
-//        return resultData;
-//    }
 
     @Override
     public List<CollegeDO> getCollegeNameAndId() {
@@ -190,6 +158,16 @@ public class CollegeServiceImpl extends ServiceImpl<CollegeMapper, CollegeDO> im
                 .eq(CollegeDO::getDelFlag, 0);
         CollegeDO collegeDO = new CollegeDO();
         collegeDO.setDelFlag(1);
+        baseMapper.update(collegeDO, updateWrapper);
+    }
+
+    @Override
+    public void enableCollege(Long id) {
+        LambdaUpdateWrapper<CollegeDO> updateWrapper = Wrappers.lambdaUpdate(CollegeDO.class)
+                .eq(CollegeDO::getId, id)
+                .eq(CollegeDO::getDelFlag, 1);
+        CollegeDO collegeDO = new CollegeDO();
+        collegeDO.setDelFlag(0);
         baseMapper.update(collegeDO, updateWrapper);
     }
 

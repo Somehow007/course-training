@@ -81,6 +81,16 @@ public class MajorServiceImpl extends ServiceImpl<MajorMapper, MajorDO> implemen
     }
 
     @Override
+    public void enableMajor(Long id) {
+        LambdaUpdateWrapper<MajorDO> updateWrapper = Wrappers.lambdaUpdate(MajorDO.class)
+                .eq(MajorDO::getId, id)
+                .eq(MajorDO::getDelFlag, 1);
+        MajorDO majorDO = new MajorDO();
+        majorDO.setDelFlag(0);
+        baseMapper.update(majorDO, updateWrapper);
+    }
+
+    @Override
     public void updateMajor(MajorUpdateReqDTO requestParam) {
 
         // 检查修改到的学院是否存在
