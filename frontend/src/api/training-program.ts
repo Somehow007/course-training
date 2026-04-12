@@ -5,6 +5,7 @@ import type {
   TrainingProgramCreateRequest,
   TrainingProgramUpdateRequest,
   TrainingProgramAddCourseRequest,
+  TrainingProgramUpdateCourseRequest,
   TrainingProgramDetailItem
 } from '@/types/api'
 import type { PageResponse } from '@/types/api'
@@ -33,6 +34,16 @@ export const trainingProgramApi = {
   // 为培养计划添加课程
   addCourse(data: TrainingProgramAddCourseRequest): Promise<void> {
     return request.post('/api/training-program/mainAdmin/add', data)
+  },
+
+  // 更新培养计划课程信息
+  updateCourse(data: TrainingProgramUpdateCourseRequest): Promise<void> {
+    return request.post('/api/training-program/mainAdmin/updateCourse', data)
+  },
+
+  // 删除培养计划中的单个课程
+  deleteCourse(id: string): Promise<void> {
+    return request.delete(`/api/training-program/mainAdmin/deleteCourse/${id}`)
   },
 
   // 查询培养计划详情

@@ -9,6 +9,11 @@ import lombok.Data;
 public class TrainingProgramDetailSelectRespDTO {
 
     /**
+     * 培养计划详情id
+     */
+    private Long id;
+
+    /**
      * 培养计划名称
      */
     private String name;
@@ -34,9 +39,19 @@ public class TrainingProgramDetailSelectRespDTO {
     private String collegeName;
 
     /**
+     * 开课学院id
+     */
+    private Long collegeId;
+
+    /**
      * 修读专业名称
      */
     private String majorName;
+
+    /**
+     * 修读专业id
+     */
+    private Long majorId;
 
     /**
      * 总学分

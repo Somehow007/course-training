@@ -49,11 +49,11 @@
     <!-- 新增对话框 -->
     <el-dialog v-model="dialogVisible" title="新增培养计划" width="500px">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
-        <el-form-item label="所属专业" prop="majorId">
-          <MajorSelect v-model="form.majorId" placeholder="请选择专业" />
-        </el-form-item>
         <el-form-item label="所属学院" prop="collegeId">
-          <CollegeSelect v-model="form.collegeId" placeholder="请选择学院" />
+          <CollegeSelect v-model="form.collegeId" placeholder="请选择学院" @change="handleFormCollegeChange" />
+        </el-form-item>
+        <el-form-item label="所属专业" prop="majorId">
+          <MajorSelect v-model="form.majorId" :college-id="form.collegeId" placeholder="请选择专业" />
         </el-form-item>
         <el-form-item label="年份" prop="year">
           <el-date-picker v-model="form.year" type="year" placeholder="请选择年份" value-format="YYYY" />
@@ -164,6 +164,10 @@ function handleAdd() {
   form.year = ''
   form.description = ''
   dialogVisible.value = true
+}
+
+function handleFormCollegeChange() {
+  form.majorId = ''
 }
 
 async function handleSubmit() {

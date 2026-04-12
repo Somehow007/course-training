@@ -70,6 +70,13 @@ public interface TrainingProgramService extends IService<TrainingProgramDO> {
     void deleteTrainingProgramDetails(String id);
 
     /**
+     * 删除培养计划中的单个课程
+     *
+     * @param id 培养计划详情 ID
+     */
+    void deleteTrainingProgramDetail(String id);
+
+    /**
      * 修改培养计划
      *
      * @param requestParam 培养计划参数

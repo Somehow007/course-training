@@ -56,6 +56,11 @@ export interface UserPageItem {
   delFlag: number
 }
 
+export interface ResetPasswordRequest {
+  userId: string
+  newPassword: string
+}
+
 // 学院相关类型
 export interface CollegePageQuery extends PageQuery {
   collegeIds?: string[]
@@ -212,12 +217,15 @@ export interface TrainingProgramAddCourseRequest {
 }
 
 export interface TrainingProgramDetailItem {
+  id: number
   name: string
   courseName: string
   courseNature: number
   courseType: string
   collegeName: string
+  collegeId: number
   majorName: string
+  majorId: number
   totalCredits: number
   totalHours: number
   totalWeeks: number | null
@@ -231,6 +239,23 @@ export interface TrainingProgramDetailItem {
   term: number | null
   remark: string | null
   version: number
+}
+
+export interface TrainingProgramUpdateCourseRequest {
+  id: string
+  majorId?: string
+  totalCredits: number
+  totalHours?: number
+  totalWeeks?: number
+  hoursUnit?: number
+  hourTeach?: number
+  hourPractice?: number
+  hourOperation?: number
+  hourOutside?: number
+  hourWeek?: number
+  requiredElective?: number
+  term?: number
+  remark?: string
 }
 
 // 系统字典相关类型

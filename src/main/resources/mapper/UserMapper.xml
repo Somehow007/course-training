@@ -53,5 +53,19 @@
         ORDER BY u.create_time DESC
     </select>
 
+    <select id="getUserWithDictName" resultType="com.ujs.trainingprogram.tp.dto.resp.user.UserPageQueryRespDTO">
+        SELECT
+            u.id AS id,
+            u.username AS username,
+            c.college_name AS collegeName,
+            d.dict_name AS dictName,
+            u.del_flag AS delFlag
+        FROM
+            user u
+        LEFT JOIN sys_dict d ON u.dict_id = d.id
+        LEFT JOIN college c ON u.college_id = c.id
+        WHERE
+            u.id = #{userId}
+    </select>
 
 </mapper>

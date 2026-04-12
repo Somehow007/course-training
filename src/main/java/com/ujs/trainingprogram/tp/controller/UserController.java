@@ -7,6 +7,7 @@ import com.ujs.trainingprogram.tp.common.exception.ClientException;
 import com.ujs.trainingprogram.tp.common.result.Result;
 import com.ujs.trainingprogram.tp.common.web.Results;
 import com.ujs.trainingprogram.tp.dao.entity.UserDO;
+import com.ujs.trainingprogram.tp.dto.req.user.ResetPasswordReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.user.UserLoginReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.user.UserPageQueryReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.user.UserRegistryReqDTO;
@@ -120,5 +121,13 @@ public class UserController {
         }
         
         return Results.success(null);
+    }
+
+    @RequireAuthentication(AuthConstant.ACADEMIC_AFFAIRS_STAFF)
+    @Operation(summary = "重置用户密码")
+    @PutMapping("/api/user/mainAdmin/reset-password")
+    public Result<Void> resetPassword(@RequestBody @Valid ResetPasswordReqDTO requestParam, HttpServletRequest request) {
+        userService.resetPassword(requestParam, request);
+        return Results.success();
     }
 }

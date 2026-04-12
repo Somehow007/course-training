@@ -93,7 +93,7 @@ public class TrainingProgramServiceImpl extends ServiceImpl<TrainingProgramMappe
         TrainingProgramDO trainingProgramDO = BeanUtil.toBean(requestParam, TrainingProgramDO.class);
         MajorDO majorDO = majorMapper.selectById(requestParam.getMajorId());
         trainingProgramDO.setId(IdUtil.getSnowflakeNextId());
-        trainingProgramDO.setName(String.format(majorDO.getMajorName(), TP_NAME_SUFFIX));
+        trainingProgramDO.setName(String.format(TP_NAME_SUFFIX, majorDO.getMajorName()));
         baseMapper.insert(trainingProgramDO);
     }
 
@@ -109,12 +109,13 @@ public class TrainingProgramServiceImpl extends ServiceImpl<TrainingProgramMappe
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void addCourseToTrainingProgram(TrainingProgramAddCourseReqDTO requestParam) {
         if (StrUtil.isBlank(requestParam.getCourseId()) || StrUtil.isBlank(requestParam.getTrainingProgramId())) {
             throw new ClientException("添加课程至培养计划失败，请传入待添加的培养计划与课程");
         }
 
-        if (StrUtil.isNotBlank(String.valueOf(requestParam.getMajorId()))) {
+        if (StrUtil.isBlank(String.valueOf(requestParam.getMajorId()))) {
             throw new ClientException("添加课程至培养计划失败，请确保该专业信息被传入。");
         }
 
@@ -133,8 +134,7 @@ public class TrainingProgramServiceImpl extends ServiceImpl<TrainingProgramMappe
         trainingProgramDetailDO.setCourseNature(courseDO.getCourseNature());
         trainingProgramDetailDO.setCourseName(courseDO.getCourseName());
 
-
-        trainingProgramDetailMapper.insert(trainingProgramDetailDO);
+        trainingProgramDetailMapper.insert(parseTimeUnits(trainingProgramDetailDO, String.valueOf(trainingProgramDetailDO.getTotalHours())));
 
         majorMapper.incrementCourseNum(Long.parseLong(requestParam.getMajorId()), 1);
     }
@@ -162,6 +162,9 @@ public class TrainingProgramServiceImpl extends ServiceImpl<TrainingProgramMappe
                 throw new ClientException("课程信息更新失败：专业课程数量修改失败");
             }
         }
+
+        // 更新数据库
+        trainingProgramDetailMapper.updateById(trainingProgramDetailDO);
     }
 
     /**
@@ -191,15 +194,50 @@ public class TrainingProgramServiceImpl extends ServiceImpl<TrainingProgramMappe
                 .eq(TrainingProgramDO::getDelFlag, 0)
                 .set(TrainingProgramDO::getDelFlag, 1);
         trainingProgramMapper.update(updateWrapper);
+
+        LambdaQueryWrapper<TrainingProgramDetailDO> queryWrapper = Wrappers.lambdaQuery(TrainingProgramDetailDO.class)
+                .eq(TrainingProgramDetailDO::getTrainingProgramId, id)
+                .eq(TrainingProgramDetailDO::getDelFlag, 0);
+        List<TrainingProgramDetailDO> trainingProgramDetailDOS = trainingProgramDetailMapper.selectList(queryWrapper);
+        LambdaUpdateWrapper<TrainingProgramDetailDO> trainingProgramDetailUpdateWrapper = Wrappers.lambdaUpdate(TrainingProgramDetailDO.class)
+                .eq(TrainingProgramDetailDO::getTrainingProgramId, id)
+                .eq(TrainingProgramDetailDO::getDelFlag, 0)
+                .set(TrainingProgramDetailDO::getDelFlag, 1);
+        trainingProgramDetailMapper.update(trainingProgramDetailUpdateWrapper);
+        majorMapper.decrementCourseNum(trainingProgramDetailDOS.get(0).getMajorId(), trainingProgramDetailDOS.size());
     }
 
     @Override
     public void deleteTrainingProgramDetails(String id) {
+        LambdaQueryWrapper<TrainingProgramDetailDO> queryWrapper = Wrappers.lambdaQuery(TrainingProgramDetailDO.class)
+                .eq(TrainingProgramDetailDO::getTrainingProgramId, id)
+                .eq(TrainingProgramDetailDO::getDelFlag, 0);
+        List<TrainingProgramDetailDO> trainingProgramDetailDOS = trainingProgramDetailMapper.selectList(queryWrapper);
+
         LambdaUpdateWrapper<TrainingProgramDetailDO> updateWrapper = Wrappers.lambdaUpdate(TrainingProgramDetailDO.class)
                 .eq(TrainingProgramDetailDO::getDelFlag, 0)
                 .eq(TrainingProgramDetailDO::getTrainingProgramId, Long.parseLong(id))
                 .set(TrainingProgramDetailDO::getDelFlag, 1);
         trainingProgramDetailMapper.update(updateWrapper);
+        majorMapper.decrementCourseNum(trainingProgramDetailDOS.get(0).getMajorId(), trainingProgramDetailDOS.size());
+
+    }
+
+    @Override
+    public void deleteTrainingProgramDetail(String id) {
+        LambdaQueryWrapper<TrainingProgramDetailDO> queryWrapper = Wrappers.lambdaQuery(TrainingProgramDetailDO.class)
+                .eq(TrainingProgramDetailDO::getId, id)
+                .eq(TrainingProgramDetailDO::getDelFlag, 0);
+        TrainingProgramDetailDO trainingProgramDetailDO = trainingProgramDetailMapper.selectOne(queryWrapper);
+
+        Long majorId = trainingProgramDetailDO.getMajorId();
+        LambdaUpdateWrapper<TrainingProgramDetailDO> updateWrapper = Wrappers.lambdaUpdate(TrainingProgramDetailDO.class)
+                .eq(TrainingProgramDetailDO::getId, id)
+                .eq(TrainingProgramDetailDO::getDelFlag, 0)
+                .set(TrainingProgramDetailDO::getDelFlag, 1);
+
+        trainingProgramDetailMapper.update(updateWrapper);
+        majorMapper.decrementCourseNum(majorId, 1);
     }
 
     @Override
@@ -333,7 +371,7 @@ public class TrainingProgramServiceImpl extends ServiceImpl<TrainingProgramMappe
                 log.warn("导入失败，该专业不存在: " + finalMajorId);
                 throw new ClientException("导入失败，该专业不存在。");
             }
-            String fileName = String.format(majorDO.getMajorName(), "专业课程设置及学时分配表");
+            String fileName = String.format(TP_NAME_SUFFIX, majorDO.getMajorName());
             try {
                 if (trainingProgramSelectRespDTO == null
                         || trainingProgramSelectRespDTO.getId() == null
@@ -503,6 +541,7 @@ public class TrainingProgramServiceImpl extends ServiceImpl<TrainingProgramMappe
 
         // 7. 批量插入（使用 MyBatis 原生批量插入）
         int successCount = trainingProgramDetailMapper.insertBatch(details);
+        majorMapper.incrementCourseNum(details.get(0).getMajorId(), details.size());
 
         if (successCount <= 0) {
             throw new ClientException("批量添加课程至培养计划失败");
@@ -782,8 +821,8 @@ public class TrainingProgramServiceImpl extends ServiceImpl<TrainingProgramMappe
                         .get(RedisKeyConstant.COLLEGE_ID_NAME_CACHE_KEY, data.getCollegeName());
                 if (StrUtil.isBlank(collegeIdStr)) {
                     // 告知用户哪些学院需要事先创建
-                    log.warn("学院不存在：{}，请检查学院名称是否正确，若确实不存在，请告知管理员进行添加。", data.getCourseName());
-                    collegeFailConvert.add("学院不存在：" + data.getCourseName() + "，，请检查学院名称是否正确，若确实不存在，请告知管理员进行添加。");
+                    log.warn("学院不存在：{}，请检查学院名称是否正确，若确实不存在，请告知管理员进行添加。", data.getCollegeName());
+                    collegeFailConvert.add("学院不存在：" + data.getCollegeName() + "，请检查学院名称是否正确，若确实不存在，请告知管理员进行添加。");
                 }
             }
         }

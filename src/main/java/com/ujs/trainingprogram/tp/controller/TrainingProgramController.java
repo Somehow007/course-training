@@ -8,6 +8,7 @@ import com.ujs.trainingprogram.tp.common.web.Results;
 import com.ujs.trainingprogram.tp.dto.req.trainingprogram.TrainingProgramAddCourseReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.trainingprogram.TrainingProgramCreateReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.trainingprogram.TrainingProgramPageReqDTO;
+import com.ujs.trainingprogram.tp.dto.req.trainingprogram.TrainingProgramUpdateCourseReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.trainingprogram.TrainingProgramUpdateReqDTO;
 import com.ujs.trainingprogram.tp.dto.resp.trainingprogram.TrainingProgramDetailSelectRespDTO;
 import com.ujs.trainingprogram.tp.dto.resp.trainingprogram.TrainingProgramPageRespDTO;
@@ -61,9 +62,31 @@ public class TrainingProgramController {
     }
 
     /**
-     * 查询某专业的培养计划
+     * 修改培养计划课程信息
      */
     @RequireAuthentication(AuthConstant.ACADEMIC_AFFAIRS_STAFF)
+    @Operation(summary = "修改培养计划课程信息")
+    @PostMapping("/api/training-program/mainAdmin/updateCourse")
+    public Result<Void> updateCourseToTrainingProgram(@RequestBody TrainingProgramUpdateCourseReqDTO requestParam) {
+        trainingProgramService.updateCourseToTrainingProgram(requestParam);
+        return Results.success();
+    }
+
+    /**
+     * 删除培养计划中的单个课程
+     */
+    @RequireAuthentication(AuthConstant.ACADEMIC_AFFAIRS_STAFF)
+    @Operation(summary = "删除培养计划中的单个课程")
+    @DeleteMapping("/api/training-program/mainAdmin/deleteCourse/{id}")
+    public Result<Void> deleteTrainingProgramDetail(@PathVariable("id") String id) {
+        trainingProgramService.deleteTrainingProgramDetail(id);
+        return Results.success();
+    }
+
+    /**
+     * 查询某专业的培养计划
+     */
+    @RequireAuthentication(AuthConstant.DEPARTMENT_CHAIR)
     @Operation(summary = "查询某专业的培养计划")
     @GetMapping("/api/training-program/detail/select/{id}")
     public Result<List<TrainingProgramDetailSelectRespDTO>> selectTrainingProgramDetail(@PathVariable("id") String id) {

@@ -3,9 +3,12 @@ package com.ujs.trainingprogram.tp.service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.ujs.trainingprogram.tp.dao.entity.UserDO;
+import com.ujs.trainingprogram.tp.dto.req.user.ResetPasswordReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.user.UserPageQueryReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.user.UserRegistryReqDTO;
 import com.ujs.trainingprogram.tp.dto.resp.user.UserPageQueryRespDTO;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * 用户信息业务逻辑层
@@ -40,4 +43,12 @@ public interface UserService extends IService<UserDO> {
      * @param id 用户ID
      */
     void enableUser(Long id);
+
+    /**
+     * 重置用户密码
+     *
+     * @param requestParam 重置密码请求参数
+     * @param request HTTP请求对象
+     */
+    void resetPassword(ResetPasswordReqDTO requestParam, HttpServletRequest request);
 }

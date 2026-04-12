@@ -4,7 +4,8 @@ import type {
   LoginResponse,
   UserPageQuery,
   UserRegistryRequest,
-  UserPageItem
+  UserPageItem,
+  ResetPasswordRequest
 } from '@/types/api'
 import type { PageResponse } from '@/types/api'
 
@@ -37,5 +38,10 @@ export const userApi = {
   // 启用用户（恢复）
   enable(id: string): Promise<void> {
     return request.put(`/api/user/mainAdmin/enable/${id}`)
+  },
+
+  // 重置用户密码
+  resetPassword(data: ResetPasswordRequest): Promise<void> {
+    return request.put('/api/user/mainAdmin/reset-password', data)
   }
 }

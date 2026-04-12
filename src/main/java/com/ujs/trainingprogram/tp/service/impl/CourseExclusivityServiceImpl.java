@@ -167,6 +167,7 @@ public class CourseExclusivityServiceImpl extends ServiceImpl<CourseExclusivityM
         // 5. 批量插入（使用 MyBatis-Plus 的 saveBatch）
         int successCount = courseExclusivityDetailMapper.insertBatch(details);
 
+
         if (successCount <= 0) {
             throw new ClientException("批量添加课程至课程分组失败");
         }

@@ -40,7 +40,7 @@ public class CoursePageQueryReqDTO extends Page {
     /**
      * 开课学院名称
      */
-    @Schema(description = "开课学院名称", example = "计算机科学与通信工程学院")
+    @Schema(description = "开课学院名称", example = "计算机学院")
     private List<String> collegeNames;
 
     /**

@@ -32,7 +32,7 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200">
+        <el-table-column label="操作" width="250">
           <template #default="{ row }">
             <el-button 
               v-permission="'100'" 
@@ -41,6 +41,14 @@
               @click="handleToggleStatus(row)"
             >
               {{ row.delFlag === 1 ? '启用' : '禁用' }}
+            </el-button>
+            <el-button
+              v-permission="'100'"
+              type="primary"
+              link
+              @click="handleResetPassword(row)"
+            >
+              重置密码
             </el-button>
           </template>
         </el-table-column>
@@ -79,6 +87,13 @@
         <el-button type="primary" :loading="submitLoading" @click="handleSubmit">确定</el-button>
       </template>
     </el-dialog>
+
+    <ResetPasswordDialog
+      v-model="resetPasswordVisible"
+      :user-id="selectedUserId"
+      :username="selectedUsername"
+      @success="loadData"
+    />
   </div>
 </template>
 
@@ -92,6 +107,7 @@ import { usePagination } from '@/composables/usePagination'
 import CollegeSelect from '@/components/business/CollegeSelect.vue'
 import DictSelect from '@/components/business/DictSelect.vue'
 import Pagination from '@/components/common/Pagination.vue'
+import ResetPasswordDialog from '@/components/business/ResetPasswordDialog.vue'
 
 // 搜索表单
 const searchForm = reactive({
@@ -115,6 +131,10 @@ function handlePageChange({ current, pageSize }: { current: number; pageSize: nu
 const dialogVisible = ref(false)
 const formRef = ref<FormInstance>()
 const submitLoading = ref(false)
+
+const resetPasswordVisible = ref(false)
+const selectedUserId = ref('')
+const selectedUsername = ref('')
 
 const form = reactive({
   username: '',
@@ -185,6 +205,12 @@ async function handleSubmit() {
   } finally {
     submitLoading.value = false
   }
+}
+
+function handleResetPassword(row: UserPageItem) {
+  selectedUserId.value = row.id
+  selectedUsername.value = row.username
+  resetPasswordVisible.value = true
 }
 
 onMounted(() => {

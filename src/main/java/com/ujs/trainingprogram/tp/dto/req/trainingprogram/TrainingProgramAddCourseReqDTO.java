@@ -1,14 +1,18 @@
 package com.ujs.trainingprogram.tp.dto.req.trainingprogram;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * 为培养计划添加课程请求体
  */
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Schema(description = "为培养计划添加课程请求体")
 public class TrainingProgramAddCourseReqDTO {
 
