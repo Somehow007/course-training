@@ -52,11 +52,14 @@ export const trainingProgramApi = {
   },
 
   // 导入培养计划
-  importExcel(collegeId: string, majorId: string, file: File): Promise<void> {
+  importExcel(collegeId: string, majorId: string, file: File, changeDescription?: string): Promise<void> {
     const formData = new FormData()
     formData.append('collegeId', collegeId)
     formData.append('majorId', majorId)
     formData.append('file', file)
+    if (changeDescription) {
+      formData.append('changeDescription', changeDescription)
+    }
     return request.post('/api/training-program/import', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'

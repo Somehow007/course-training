@@ -29,7 +29,6 @@ import com.ujs.trainingprogram.tp.excel.template.TrainingProgramExcelTemplate;
 import com.ujs.trainingprogram.tp.service.*;
 import com.ujs.trainingprogram.tp.utils.ExcelExportUtils;
 import com.ujs.trainingprogram.tp.utils.LoadCacheUtils;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
@@ -37,6 +36,7 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -63,7 +63,6 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class TrainingProgramServiceImpl extends ServiceImpl<TrainingProgramMapper, TrainingProgramDO> implements TrainingProgramService {
 
     private final TrainingProgramMapper trainingProgramMapper;
@@ -77,6 +76,30 @@ public class TrainingProgramServiceImpl extends ServiceImpl<TrainingProgramMappe
     private static final String TP_NAME_SUFFIX = "%s专业课程设置及学时分配表";
     private final CourseExclusivityService courseExclusivityService;
     private final TransactionTemplate transactionTemplate;
+    private final VersionHistoryService versionHistoryService;
+
+    public TrainingProgramServiceImpl(
+            TrainingProgramMapper trainingProgramMapper,
+            CourseMapper courseMapper,
+            TrainingProgramDetailMapper trainingProgramDetailMapper,
+            MajorMapper majorMapper,
+            LoadCacheUtils loadCacheUtils,
+            StringRedisTemplate stringRedisTemplate,
+            SysDictService sysDictService,
+            CourseExclusivityService courseExclusivityService,
+            TransactionTemplate transactionTemplate,
+            @Lazy VersionHistoryService versionHistoryService) {
+        this.trainingProgramMapper = trainingProgramMapper;
+        this.courseMapper = courseMapper;
+        this.trainingProgramDetailMapper = trainingProgramDetailMapper;
+        this.majorMapper = majorMapper;
+        this.loadCacheUtils = loadCacheUtils;
+        this.stringRedisTemplate = stringRedisTemplate;
+        this.sysDictService = sysDictService;
+        this.courseExclusivityService = courseExclusivityService;
+        this.transactionTemplate = transactionTemplate;
+        this.versionHistoryService = versionHistoryService;
+    }
 
 
     @Override
@@ -341,13 +364,16 @@ public class TrainingProgramServiceImpl extends ServiceImpl<TrainingProgramMappe
 
     @Override
     public void importTrainingProgramFromExcel(MultipartFile file, String collegeId, String majorId) {
+        importTrainingProgramFromExcel(file, collegeId, majorId, null);
+    }
 
-        // 1. 检查缓存，若没有，则预加载数据到缓存中，避免逐条查询数据库
+    @Override
+    public void importTrainingProgramFromExcel(MultipartFile file, String collegeId, String majorId, String changeDescription) {
+
         loadCacheUtils.loadCollegeCache();
         loadCacheUtils.loadSysDictCache();
         loadCacheUtils.loadCourseCache();
 
-        // 从缓存获取学院 ID
         collegeId = removeLeadingComma(collegeId);
         majorId = removeLeadingComma(majorId);
         List<Object> collegeValueStr = stringRedisTemplate.opsForHash()
@@ -356,9 +382,11 @@ public class TrainingProgramServiceImpl extends ServiceImpl<TrainingProgramMappe
             throw new ClientException("学院不存在：" + collegeId + "，请先添加该学院");
         }
 
-        // 2. 首先查询数据库，找到要导入的培养计划
         TrainingProgramSelectRespDTO trainingProgramSelectRespDTO = selectTrainingProgramByCollegeAndMajor(collegeId, majorId);
 
+        boolean isFirstVersion = trainingProgramSelectRespDTO == null
+                || trainingProgramSelectRespDTO.getId() == null
+                || trainingProgramSelectRespDTO.getId() == 0L;
 
         String finalCollegeId = collegeId;
         String finalMajorId = majorId;
@@ -373,10 +401,9 @@ public class TrainingProgramServiceImpl extends ServiceImpl<TrainingProgramMappe
             }
             String fileName = String.format(TP_NAME_SUFFIX, majorDO.getMajorName());
             try {
-                if (trainingProgramSelectRespDTO == null
-                        || trainingProgramSelectRespDTO.getId() == null
-                        || trainingProgramSelectRespDTO.getId() == 0L) {
-                    // 不存在，就新创建
+                List<TrainingProgramDetailDO> oldDetails = Collections.emptyList();
+
+                if (isFirstVersion) {
                     TrainingProgramDO newTrainingProgram = TrainingProgramDO.builder()
                             .name(fileName)
                             .collegeId(Long.parseLong(finalCollegeId))
@@ -384,26 +411,22 @@ public class TrainingProgramServiceImpl extends ServiceImpl<TrainingProgramMappe
                             .year(LocalDateTime.now().getYear())
                             .build();
 
-                    // 获取培养计划Id，后续直接组培养计划表就行
                     tpId = createTrainingProgram(newTrainingProgram);
                     version = 1;
                 } else {
-                    // 如果存在，获取已有的培养计划 ID，并获取其当前版本号
                     tpId = trainingProgramSelectRespDTO.getId();
+                    oldDetails = selectTrainingProgramDetailDOs(tpId.toString());
                     List<TrainingProgramDetailSelectRespDTO> originData = selectTrainingProgramDetail(tpId.toString());
                     if (CollUtil.isEmpty(originData) || originData.get(0).getVersion() == null) {
                         version = 1;
                     } else {
-                        // 2. 将原培养计划的详细内容全部软删除，并更新版本；后续导入 Excel 中的版本
                         deleteTrainingProgramDetails(tpId.toString());
                         version = originData.get(0).getVersion() != null ? originData.get(0).getVersion() + 1 : 1;
                     }
                 }
 
-                // 预读合并区域信息
                 Map<Integer, ExcelMergeRegion> mergeRegionMap = readMergeRegions(file);
 
-                // 3. 使用自定义监听器读取Excel数据
                 ReadTrainingProgramListener listener = new ReadTrainingProgramListener(
                         this,
                         Long.parseLong(finalMajorId),
@@ -413,6 +436,16 @@ public class TrainingProgramServiceImpl extends ServiceImpl<TrainingProgramMappe
                 EasyExcel.read(file.getInputStream(), TrainingProgramExcelTemplate.class, listener)
                         .sheet()
                         .doRead();
+
+                VersionHistoryDO newVersion = versionHistoryService.createVersionFromImport(tpId, changeDescription, isFirstVersion);
+
+                List<TrainingProgramDetailDO> newDetails = selectTrainingProgramDetailDOs(tpId.toString());
+                newVersion.setSnapshotData(com.alibaba.fastjson2.JSON.toJSONString(newDetails));
+                versionHistoryService.updateById(newVersion);
+
+                if (!isFirstVersion) {
+                    versionHistoryService.recordChangeLogs(newVersion.getId(), oldDetails, newDetails);
+                }
 
             } catch (Exception ex) {
                 status.setRollbackOnly();
@@ -847,6 +880,14 @@ public class TrainingProgramServiceImpl extends ServiceImpl<TrainingProgramMappe
             }
             throw new ClientException(fullMessage.toString().trim());
         }
+    }
+
+    @Override
+    public List<TrainingProgramDetailDO> selectTrainingProgramDetailDOs(String trainingProgramId) {
+        LambdaQueryWrapper<TrainingProgramDetailDO> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(TrainingProgramDetailDO::getTrainingProgramId, Long.parseLong(trainingProgramId))
+               .eq(TrainingProgramDetailDO::getDelFlag, 0);
+        return trainingProgramDetailMapper.selectList(wrapper);
     }
 
 }

@@ -49,6 +49,18 @@ export const routes: RouteRecordRaw[] = [
         meta: { title: '培养计划详情', hidden: true }
       },
       {
+        path: 'version',
+        name: 'Version',
+        component: () => import('@/views/version/index.vue'),
+        meta: { title: '版本管理', icon: 'Clock' }
+      },
+      {
+        path: 'version/compare',
+        name: 'VersionCompare',
+        component: () => import('@/views/version/compare.vue'),
+        meta: { title: '版本对比', hidden: true }
+      },
+      {
         path: 'user',
         name: 'User',
         component: () => import('@/views/user/index.vue'),

@@ -50,9 +50,23 @@ public class SecurityUtils {
     }
 
     /**
-     * 获取当前用户身份名称（如“教师”）
+     * 获取当前用户身份名称（如"教师"）
      */
     public static String getCurrentRoleName() {
         return getCurrentUserDetails().getRoleName();
+    }
+
+    /**
+     * 获取当前用户ID
+     */
+    public static Long getCurrentUserId() {
+        return getCurrentUser().getId();
+    }
+
+    /**
+     * 获取当前用户名
+     */
+    public static String getCurrentUsername() {
+        return getCurrentUser().getUsername();
     }
 }

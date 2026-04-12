@@ -1,7 +1,6 @@
 <template>
   <div class="training-program-page">
     <el-card>
-      <!-- 搜索栏 -->
       <el-form :inline="true" :model="searchForm" class="search-form">
         <el-form-item label="专业">
           <MajorSelect v-model="searchForm.majorId" placeholder="请选择专业" clearable />
@@ -12,29 +11,35 @@
         </el-form-item>
       </el-form>
 
-      <!-- 操作按钮 -->
       <div class="toolbar">
         <el-button v-permission="'100'" type="primary" @click="handleAdd">新增培养计划</el-button>
         <el-button type="success" @click="handleImport">导入Excel</el-button>
         <el-button type="info" @click="handleDownloadTemplate">下载模板</el-button>
       </div>
 
-      <!-- 表格 -->
       <el-table :data="tableData" v-loading="loading" stripe class="table-flex">
-        <el-table-column prop="name" label="培养计划名称" />
-        <el-table-column prop="majorName" label="所属专业" />
-        <el-table-column prop="year" label="年份" width="100" />
-        <el-table-column prop="description" label="描述" />
-        <el-table-column label="操作" width="300">
+        <el-table-column prop="name" label="培养计划名称" min-width="200" show-overflow-tooltip />
+        <el-table-column prop="majorName" label="所属专业" width="150" />
+        <el-table-column prop="year" label="年份" width="80" />
+        <el-table-column label="版本" width="100">
+          <template #default="{ row }">
+            <el-tag v-if="row.currentVersion" type="success" size="small">
+              V{{ row.currentVersion }}
+            </el-tag>
+            <el-tag v-else type="info" size="small">无版本</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="description" label="描述" min-width="150" show-overflow-tooltip />
+        <el-table-column label="操作" width="320" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" link @click="handleViewDetail(row)">查看详情</el-button>
             <el-button type="success" link @click="handleExport(row)">导出</el-button>
+            <el-button type="warning" link @click="handleViewVersions(row)">版本</el-button>
             <el-button v-permission="'100'" type="danger" link @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
 
-      <!-- 分页容器 -->
       <div class="pagination-container">
         <Pagination
           v-model:current="pagination.current"
@@ -46,7 +51,6 @@
       </div>
     </el-card>
 
-    <!-- 新增对话框 -->
     <el-dialog v-model="dialogVisible" title="新增培养计划" width="500px">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
         <el-form-item label="所属学院" prop="collegeId">
@@ -68,14 +72,26 @@
       </template>
     </el-dialog>
 
-    <!-- 导入对话框 -->
-    <el-dialog v-model="importDialogVisible" title="导入培养计划" width="500px">
-      <el-form ref="importFormRef" :model="importForm" :rules="importRules" label-width="80px">
+    <el-dialog v-model="importDialogVisible" title="导入培养计划" width="520px" :close-on-click-modal="false">
+      <el-alert type="info" :closable="false" show-icon class="import-tip">
+        <template #title>
+          导入Excel将自动管理版本：若培养计划已存在，将创建新版本并保留历史数据。
+        </template>
+      </el-alert>
+      <el-form ref="importFormRef" :model="importForm" :rules="importRules" label-width="100px" class="import-form">
         <el-form-item label="所属学院" prop="collegeId">
           <CollegeSelect v-model="importForm.collegeId" placeholder="请选择学院" @change="handleCollegeChange" />
         </el-form-item>
         <el-form-item label="所属专业" prop="majorId">
           <MajorSelect v-model="importForm.majorId" :college-id="importForm.collegeId" placeholder="请选择专业" />
+        </el-form-item>
+        <el-form-item label="版本说明" prop="changeDescription">
+          <el-input
+            v-model="importForm.changeDescription"
+            type="textarea"
+            :rows="3"
+            placeholder="请输入本次导入的变更说明（如：新增3门课程、调整学分等）"
+          />
         </el-form-item>
         <el-form-item label="Excel文件" prop="file">
           <el-upload
@@ -84,14 +100,19 @@
             :limit="1"
             accept=".xlsx,.xls"
             :on-change="handleFileChange"
+            drag
           >
-            <el-button type="primary">选择文件</el-button>
+            <el-icon class="el-icon--upload"><UploadFilled /></el-icon>
+            <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
+            <template #tip>
+              <div class="el-upload__tip">仅支持 .xlsx / .xls 格式文件</div>
+            </template>
           </el-upload>
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="importDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="importLoading" @click="handleImportSubmit">确定导入</el-button>
+        <el-button type="primary" :loading="importLoading" @click="handleImportSubmit">确认导入</el-button>
       </template>
     </el-dialog>
   </div>
@@ -102,6 +123,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules, UploadFile } from 'element-plus'
+import { UploadFilled } from '@element-plus/icons-vue'
 import { trainingProgramApi } from '@/api/training-program'
 import { exportExcel, downloadTemplate } from '@/utils/download'
 import { usePagination } from '@/composables/usePagination'
@@ -112,16 +134,13 @@ import Pagination from '@/components/common/Pagination.vue'
 
 const router = useRouter()
 
-// 搜索表单
 const searchForm = reactive({
   majorId: undefined as string | undefined
 })
 
-// 分页列表
 const { loading, tableData, pagination, loadData, handleCurrentChange, handleSizeChange, search } =
   usePagination<TrainingProgramPageItem>((params) => trainingProgramApi.page(params))
 
-// 分页变化处理
 function handlePageChange({ current, pageSize }: { current: number; pageSize: number }) {
   handleCurrentChange(current)
   if (pageSize !== pagination.size) {
@@ -130,9 +149,7 @@ function handlePageChange({ current, pageSize }: { current: number; pageSize: nu
 }
 
 function handleSearch() {
-  search({
-    majorId: searchForm.majorId
-  })
+  search({ majorId: searchForm.majorId })
 }
 
 function handleReset() {
@@ -140,7 +157,6 @@ function handleReset() {
   search()
 }
 
-// 新增对话框
 const dialogVisible = ref(false)
 const formRef = ref<FormInstance>()
 const submitLoading = ref(false)
@@ -159,10 +175,7 @@ const rules: FormRules = {
 }
 
 function handleAdd() {
-  form.majorId = ''
-  form.collegeId = ''
-  form.year = ''
-  form.description = ''
+  Object.assign(form, { majorId: '', collegeId: '', year: '', description: '' })
   dialogVisible.value = true
 }
 
@@ -188,17 +201,18 @@ async function handleSubmit() {
   }
 }
 
-// 查看详情
 function handleViewDetail(row: TrainingProgramPageItem) {
   router.push(`/training-program/${row.id}`)
 }
 
-// 导出
+function handleViewVersions(row: TrainingProgramPageItem) {
+  router.push({ path: '/version', query: { trainingProgramId: row.id } })
+}
+
 function handleExport(row: TrainingProgramPageItem) {
   exportExcel(row.id, `${row.name}.xlsx`)
 }
 
-// 删除
 async function handleDelete(row: TrainingProgramPageItem) {
   await ElMessageBox.confirm('确定要删除该培养计划吗？', '提示', { type: 'warning' })
   await trainingProgramApi.delete(row.id)
@@ -206,25 +220,24 @@ async function handleDelete(row: TrainingProgramPageItem) {
   loadData()
 }
 
-// 导入
 const importDialogVisible = ref(false)
 const importFormRef = ref<FormInstance>()
 const importLoading = ref(false)
 const importForm = reactive({
   collegeId: '',
   majorId: '',
+  changeDescription: '',
   file: null as File | null
 })
 
 const importRules: FormRules = {
   collegeId: [{ required: true, message: '请选择学院', trigger: 'change' }],
-  majorId: [{ required: true, message: '请选择专业', trigger: 'change' }]
+  majorId: [{ required: true, message: '请选择专业', trigger: 'change' }],
+  changeDescription: [{ required: true, message: '请输入版本变更说明', trigger: 'blur' }]
 }
 
 function handleImport() {
-  importForm.collegeId = ''
-  importForm.majorId = ''
-  importForm.file = null
+  Object.assign(importForm, { collegeId: '', majorId: '', changeDescription: '', file: null })
   importDialogVisible.value = true
 }
 
@@ -244,15 +257,20 @@ async function handleImportSubmit() {
   }
   importLoading.value = true
   try {
-    await trainingProgramApi.importExcel(importForm.collegeId, importForm.majorId, importForm.file)
-    ElMessage.success('导入成功')
+    await trainingProgramApi.importExcel(
+      importForm.collegeId,
+      importForm.majorId,
+      importForm.file,
+      importForm.changeDescription
+    )
+    ElMessage.success('导入成功，版本已自动创建')
     importDialogVisible.value = false
+    loadData()
   } finally {
     importLoading.value = false
   }
 }
 
-// 下载模板
 function handleDownloadTemplate() {
   downloadTemplate()
 }
@@ -265,7 +283,7 @@ onMounted(() => {
 <style scoped lang="scss">
 .training-program-page {
   height: 100%;
-  
+
   .el-card {
     height: 100%;
     display: flex;
@@ -293,5 +311,13 @@ onMounted(() => {
   padding-top: 20px;
   border-top: 1px solid #ebeef5;
   flex-shrink: 0;
+}
+
+.import-tip {
+  margin-bottom: 16px;
+}
+
+.import-form {
+  margin-top: 12px;
 }
 </style>

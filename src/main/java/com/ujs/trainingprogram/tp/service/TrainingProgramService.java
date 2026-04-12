@@ -3,6 +3,7 @@ package com.ujs.trainingprogram.tp.service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.ujs.trainingprogram.tp.dao.entity.TrainingProgramDO;
+import com.ujs.trainingprogram.tp.dao.entity.TrainingProgramDetailDO;
 import com.ujs.trainingprogram.tp.dto.req.trainingprogram.*;
 import com.ujs.trainingprogram.tp.dto.resp.trainingprogram.TrainingProgramDetailSelectRespDTO;
 import com.ujs.trainingprogram.tp.dto.resp.trainingprogram.TrainingProgramPageRespDTO;
@@ -105,6 +106,8 @@ public interface TrainingProgramService extends IService<TrainingProgramDO> {
      * @param file Excel文件
      */
     void importTrainingProgramFromExcel(MultipartFile file, String collegeId, String majorId);
+
+    void importTrainingProgramFromExcel(MultipartFile file, String collegeId, String majorId, String changeDescription);
     
     /**
      * 下载培养计划Excel模板
@@ -135,4 +138,12 @@ public interface TrainingProgramService extends IService<TrainingProgramDO> {
      * @return          培养计划基础信息
      */
     TrainingProgramSelectRespDTO selectTrainingProgramByCollegeAndMajor(String collegeId, String majorId);
+
+    /**
+     * 查询培养方案详情DO列表
+     *
+     * @param trainingProgramId 培养方案ID
+     * @return 培养方案详情列表
+     */
+    List<TrainingProgramDetailDO> selectTrainingProgramDetailDOs(String trainingProgramId);
 }

@@ -38,9 +38,10 @@ public class ExcelController {
     public Result<Void> importTrainingProgramFromExcel(
             @RequestParam(value = "collegeId") String collegeId,
             @RequestParam(value = "majorId") String majorId,
+            @RequestParam(value = "changeDescription", required = false) String changeDescription,
             @RequestParam("file") MultipartFile file) {
 
-        trainingProgramService.importTrainingProgramFromExcel(file, collegeId, majorId);
+        trainingProgramService.importTrainingProgramFromExcel(file, collegeId, majorId, changeDescription);
         return Results.success();
     }
     
