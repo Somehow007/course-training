@@ -9,11 +9,14 @@ import com.ujs.trainingprogram.tp.dao.entity.VersionChangeLogDO;
 import com.ujs.trainingprogram.tp.dto.req.version.VersionCompareReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.version.VersionCreateReqDTO;
 import com.ujs.trainingprogram.tp.dto.req.version.VersionPageReqDTO;
+import com.ujs.trainingprogram.tp.dto.req.version.VersionSaveChangesReqDTO;
+import com.ujs.trainingprogram.tp.dto.resp.trainingprogram.TrainingProgramDetailSelectRespDTO;
 import com.ujs.trainingprogram.tp.dto.resp.version.VersionCompareRespDTO;
 import com.ujs.trainingprogram.tp.dto.resp.version.VersionListRespDTO;
 import com.ujs.trainingprogram.tp.service.VersionHistoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -77,6 +80,12 @@ public class VersionController {
         return Results.success(versionHistoryService.getVersionDetail(versionId));
     }
 
+    @Operation(summary = "查询版本快照详情数据")
+    @GetMapping("/snapshot-detail/{versionId}")
+    public Result<List<TrainingProgramDetailSelectRespDTO>> getVersionSnapshotDetail(@PathVariable String versionId) {
+        return Results.success(versionHistoryService.getVersionSnapshotDetail(versionId));
+    }
+
     @RequireAuthentication(AuthConstant.ACADEMIC_AFFAIRS_STAFF)
     @Operation(summary = "删除版本")
     @DeleteMapping("/delete/{versionId}")
@@ -95,5 +104,19 @@ public class VersionController {
     @GetMapping("/change-logs/{versionId}")
     public Result<List<VersionChangeLogDO>> getVersionChangeLogs(@PathVariable String versionId) {
         return Results.success(versionHistoryService.getVersionChangeLogs(versionId));
+    }
+
+    @RequireAuthentication(AuthConstant.ACADEMIC_AFFAIRS_STAFF)
+    @Operation(summary = "保存修改并创建新版本")
+    @PostMapping("/save-changes")
+    public Result<Void> saveChangesAndCreateVersion(@RequestBody VersionSaveChangesReqDTO requestParam) {
+        versionHistoryService.saveChangesAndCreateVersion(requestParam);
+        return Results.success();
+    }
+
+    @Operation(summary = "导出版本到Excel")
+    @GetMapping("/export/{versionId}")
+    public void exportVersionToExcel(@PathVariable String versionId, HttpServletResponse response) {
+        versionHistoryService.exportVersionToExcel(versionId, response);
     }
 }

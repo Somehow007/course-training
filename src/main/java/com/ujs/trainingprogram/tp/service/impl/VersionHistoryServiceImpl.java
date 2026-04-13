@@ -2,6 +2,7 @@ package com.ujs.trainingprogram.tp.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.IdUtil;
+import com.alibaba.excel.EasyExcel;
 import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -13,15 +14,23 @@ import com.ujs.trainingprogram.tp.common.exception.ServiceException;
 import com.ujs.trainingprogram.tp.dao.entity.*;
 import com.ujs.trainingprogram.tp.dao.mapper.*;
 import com.ujs.trainingprogram.tp.dto.req.version.*;
+import com.ujs.trainingprogram.tp.dto.resp.trainingprogram.TrainingProgramDetailSelectRespDTO;
 import com.ujs.trainingprogram.tp.dto.resp.version.*;
+import com.ujs.trainingprogram.tp.excel.template.TrainingProgramExcelTemplate;
 import com.ujs.trainingprogram.tp.service.*;
+import com.ujs.trainingprogram.tp.utils.ExcelExportUtils;
 import com.ujs.trainingprogram.tp.utils.SecurityUtils;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.lang.reflect.Field;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -36,9 +45,13 @@ public class VersionHistoryServiceImpl extends ServiceImpl<VersionHistoryMapper,
     private final TrainingProgramMapper trainingProgramMapper;
     private final TrainingProgramDetailMapper trainingProgramDetailMapper;
     private final TrainingProgramService trainingProgramService;
+    private final CollegeMapper collegeMapper;
+    private final MajorMapper majorMapper;
+    private final CourseMapper courseMapper;
+    private final SysDictMapper sysDictMapper;
 
     private static final Set<String> EXCLUDED_COMPARE_FIELDS = Set.of(
-            "id", "trainingProgramId", "serialVersionUID", "createTime", "updateTime", "delFlag"
+            "id", "trainingProgramId", "serialVersionUID", "createTime", "updateTime", "delFlag", "version"
     );
 
     private static final Map<String, String> FIELD_NAME_MAPPING = Map.ofEntries(
@@ -57,8 +70,7 @@ public class VersionHistoryServiceImpl extends ServiceImpl<VersionHistoryMapper,
             Map.entry("hourWeek", "周学时"),
             Map.entry("requiredElective", "选修学分要求"),
             Map.entry("term", "建议修读学期"),
-            Map.entry("remark", "备注"),
-            Map.entry("version", "版本号")
+            Map.entry("remark", "备注")
     );
 
     @Override
@@ -535,6 +547,261 @@ public class VersionHistoryServiceImpl extends ServiceImpl<VersionHistoryMapper,
         versionHistoryMapper.updateById(version);
     }
 
+    @Override
+    public List<TrainingProgramDetailSelectRespDTO> getVersionSnapshotDetail(String versionId) {
+        VersionHistoryDO version = versionHistoryMapper.selectById(versionId);
+        if (version == null) {
+            throw new ServiceException("版本不存在");
+        }
+
+        String snapshotData = version.getSnapshotData();
+        if (snapshotData == null || snapshotData.isEmpty()) {
+            log.warn("版本 {} 的快照数据为空，尝试从当前数据库查询", versionId);
+            List<TrainingProgramDetailDO> currentDetails = trainingProgramService.selectTrainingProgramDetailDOs(version.getTrainingProgramId().toString());
+            if (currentDetails == null || currentDetails.isEmpty()) {
+                return new ArrayList<>();
+            }
+            return convertToDetailSelectRespDTO(currentDetails, version.getTrainingProgramId());
+        }
+
+        List<TrainingProgramDetailDO> details = JSON.parseArray(snapshotData, TrainingProgramDetailDO.class);
+        if (details == null || details.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        return convertToDetailSelectRespDTO(details, version.getTrainingProgramId());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void saveChangesAndCreateVersion(VersionSaveChangesReqDTO requestParam) {
+        Long trainingProgramId = Long.parseLong(requestParam.getTrainingProgramId());
+
+        TrainingProgramDO trainingProgram = trainingProgramMapper.selectById(trainingProgramId);
+        if (trainingProgram == null) {
+            throw new ServiceException("培养方案不存在");
+        }
+
+        Integer currentVersion = trainingProgram.getCurrentVersion() != null ? trainingProgram.getCurrentVersion() : 0;
+        Integer newVersionNumber = currentVersion + 1;
+
+        List<TrainingProgramDetailDO> oldDetails = trainingProgramService.selectTrainingProgramDetailDOs(trainingProgramId.toString());
+        String oldSnapshot = JSON.toJSONString(oldDetails);
+        log.info("保存修改前获取旧数据，版本号: {}, 课程数量: {}", currentVersion, oldDetails.size());
+
+        if (currentVersion > 0) {
+            LambdaQueryWrapper<VersionHistoryDO> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(VersionHistoryDO::getTrainingProgramId, trainingProgramId)
+                       .eq(VersionHistoryDO::getVersionNumber, currentVersion)
+                       .eq(VersionHistoryDO::getDelFlag, 0)
+                       .orderByDesc(VersionHistoryDO::getCreateTime)
+                       .last("LIMIT 1");
+            VersionHistoryDO oldVersionHistory = versionHistoryMapper.selectOne(queryWrapper);
+            
+            if (oldVersionHistory != null && (oldVersionHistory.getSnapshotData() == null || oldVersionHistory.getSnapshotData().isEmpty())) {
+                log.info("更新旧版本 {} 的快照数据", currentVersion);
+                oldVersionHistory.setSnapshotData(oldSnapshot);
+                versionHistoryMapper.updateById(oldVersionHistory);
+            }
+        }
+
+        if (requestParam.getDeletedCourseIds() != null && !requestParam.getDeletedCourseIds().isEmpty()) {
+            for (String courseId : requestParam.getDeletedCourseIds()) {
+                trainingProgramService.deleteTrainingProgramDetail(courseId);
+            }
+        }
+
+        if (requestParam.getAddedCourses() != null && !requestParam.getAddedCourses().isEmpty()) {
+            for (VersionSaveChangesReqDTO.CourseChangeItem item : requestParam.getAddedCourses()) {
+                CourseDO course = courseMapper.selectById(Long.parseLong(item.getCourseId()));
+                String courseName = item.getCourseName();
+                Integer courseNature = item.getCourseNature();
+                Long collegeId = item.getCollegeId() != null ? Long.parseLong(item.getCollegeId()) : null;
+                
+                if (course != null) {
+                    if (courseName == null || courseName.isEmpty()) {
+                        courseName = course.getCourseName();
+                    }
+                    if (courseNature == null) {
+                        courseNature = course.getCourseNature();
+                    }
+                    if (collegeId == null) {
+                        collegeId = course.getCollegeId();
+                    }
+                }
+                
+                TrainingProgramDetailDO detailDO = TrainingProgramDetailDO.builder()
+                        .id(IdUtil.getSnowflakeNextId())
+                        .trainingProgramId(trainingProgramId)
+                        .courseId(Long.parseLong(item.getCourseId()))
+                        .courseNature(courseNature != null ? courseNature : 0)
+                        .courseName(courseName != null ? courseName : "")
+                        .collegeId(collegeId)
+                        .majorId(item.getMajorId() != null ? Long.parseLong(item.getMajorId()) : null)
+                        .totalCredits(item.getTotalCredits())
+                        .totalHours(item.getTotalHours())
+                        .totalWeeks(item.getTotalWeeks())
+                        .hoursUnit(item.getHoursUnit() != null ? item.getHoursUnit() : 0)
+                        .hourTeach(item.getHourTeach())
+                        .hourPractice(item.getHourPractice())
+                        .hourOperation(item.getHourOperation())
+                        .hourOutside(item.getHourOutside())
+                        .hourWeek(item.getHourWeek())
+                        .requiredElective(item.getRequiredElective())
+                        .term(item.getTerm())
+                        .remark(item.getRemark())
+                        .version(newVersionNumber)
+                        .build();
+                trainingProgramDetailMapper.insert(detailDO);
+            }
+        }
+
+        if (requestParam.getUpdatedCourses() != null && !requestParam.getUpdatedCourses().isEmpty()) {
+            for (VersionSaveChangesReqDTO.CourseChangeItem item : requestParam.getUpdatedCourses()) {
+                TrainingProgramDetailDO existingDetail = trainingProgramDetailMapper.selectById(Long.parseLong(item.getId()));
+                if (existingDetail != null) {
+                    existingDetail.setCollegeId(item.getCollegeId() != null ? Long.parseLong(item.getCollegeId()) : null);
+                    existingDetail.setMajorId(item.getMajorId() != null ? Long.parseLong(item.getMajorId()) : null);
+                    existingDetail.setTotalCredits(item.getTotalCredits());
+                    existingDetail.setTotalHours(item.getTotalHours());
+                    existingDetail.setTotalWeeks(item.getTotalWeeks());
+                    existingDetail.setHoursUnit(item.getHoursUnit() != null ? item.getHoursUnit() : 0);
+                    existingDetail.setHourTeach(item.getHourTeach());
+                    existingDetail.setHourPractice(item.getHourPractice());
+                    existingDetail.setHourOperation(item.getHourOperation());
+                    existingDetail.setHourOutside(item.getHourOutside());
+                    existingDetail.setHourWeek(item.getHourWeek());
+                    existingDetail.setRequiredElective(item.getRequiredElective());
+                    existingDetail.setTerm(item.getTerm());
+                    existingDetail.setRemark(item.getRemark());
+                    existingDetail.setVersion(newVersionNumber);
+                    trainingProgramDetailMapper.updateById(existingDetail);
+                }
+            }
+        }
+
+        List<TrainingProgramDetailDO> newDetails = trainingProgramDetailMapper.selectList(
+            new LambdaQueryWrapper<TrainingProgramDetailDO>()
+                .eq(TrainingProgramDetailDO::getTrainingProgramId, trainingProgramId)
+                .eq(TrainingProgramDetailDO::getDelFlag, 0)
+        );
+        String newSnapshot = JSON.toJSONString(newDetails);
+        log.info("保存修改后获取新数据，版本号: {}, 课程数量: {}", newVersionNumber, newDetails.size());
+
+        Long userId = SecurityUtils.getCurrentUserId();
+        String userName = SecurityUtils.getCurrentUsername();
+
+        String versionName = requestParam.getVersionName() != null && !requestParam.getVersionName().isEmpty()
+                ? requestParam.getVersionName()
+                : trainingProgram.getName() + " - V" + newVersionNumber;
+
+        VersionHistoryDO versionHistory = VersionHistoryDO.builder()
+                .id(IdUtil.getSnowflakeNextId())
+                .trainingProgramId(trainingProgramId)
+                .versionNumber(newVersionNumber)
+                .versionName(versionName)
+                .versionStatus(VersionStatusEnum.PUBLISHED.getCode())
+                .changeDescription(requestParam.getChangeDescription() != null ? requestParam.getChangeDescription() : "手动保存创建新版本")
+                .snapshotData(newSnapshot)
+                .creatorId(userId)
+                .creatorName(userName)
+                .publishTime(LocalDateTime.now())
+                .publishUserId(userId)
+                .publishUserName(userName)
+                .build();
+
+        versionHistoryMapper.insert(versionHistory);
+
+        recordChangeLogs(versionHistory.getId(), oldDetails, newDetails);
+
+        trainingProgram.setCurrentVersion(newVersionNumber);
+        trainingProgram.setLastVersionId(versionHistory.getId());
+        trainingProgram.setVersionStatus(VersionStatusEnum.PUBLISHED.getCode());
+        trainingProgramMapper.updateById(trainingProgram);
+    }
+
+    private List<TrainingProgramDetailSelectRespDTO> convertToDetailSelectRespDTO(List<TrainingProgramDetailDO> details, Long trainingProgramId) {
+        TrainingProgramDO trainingProgram = trainingProgramMapper.selectById(trainingProgramId);
+        String programName = trainingProgram != null ? trainingProgram.getName() : "";
+
+        Map<Long, String> collegeNameMap = new HashMap<>();
+        Map<Long, String> majorNameMap = new HashMap<>();
+        Map<Long, String> courseTypeMap = new HashMap<>();
+
+        for (TrainingProgramDetailDO detail : details) {
+            if (detail.getCollegeId() != null && !collegeNameMap.containsKey(detail.getCollegeId())) {
+                collegeNameMap.put(detail.getCollegeId(), getCollegeName(detail.getCollegeId()));
+            }
+            if (detail.getMajorId() != null && !majorNameMap.containsKey(detail.getMajorId())) {
+                majorNameMap.put(detail.getMajorId(), getMajorName(detail.getMajorId()));
+            }
+            if (detail.getCourseId() != null && !courseTypeMap.containsKey(detail.getCourseId())) {
+                courseTypeMap.put(detail.getCourseId(), getCourseType(detail.getCourseId()));
+            }
+        }
+
+        return details.stream().map(detail -> {
+            TrainingProgramDetailSelectRespDTO dto = new TrainingProgramDetailSelectRespDTO();
+            dto.setId(detail.getId());
+            dto.setName(programName);
+            dto.setCourseName(detail.getCourseName());
+            dto.setCourseNature(detail.getCourseNature());
+            dto.setCourseType(courseTypeMap.getOrDefault(detail.getCourseId(), ""));
+            dto.setCollegeName(collegeNameMap.getOrDefault(detail.getCollegeId(), ""));
+            dto.setCollegeId(detail.getCollegeId());
+            dto.setMajorName(majorNameMap.getOrDefault(detail.getMajorId(), ""));
+            dto.setMajorId(detail.getMajorId());
+            dto.setTotalCredits(detail.getTotalCredits());
+            dto.setTotalHours(detail.getTotalHours());
+            dto.setTotalWeeks(detail.getTotalWeeks());
+            dto.setHoursUnit(detail.getHoursUnit());
+            dto.setHourTeach(detail.getHourTeach());
+            dto.setHourPractice(detail.getHourPractice());
+            dto.setHourOperation(detail.getHourOperation());
+            dto.setHourOutside(detail.getHourOutside());
+            dto.setHourWeek(detail.getHourWeek());
+            dto.setRequiredElective(detail.getRequiredElective());
+            dto.setTerm(detail.getTerm());
+            dto.setRemark(detail.getRemark());
+            dto.setVersion(detail.getVersion());
+            return dto;
+        }).collect(Collectors.toList());
+    }
+
+    private String getCourseType(Long courseId) {
+        if (courseId == null) return "";
+        try {
+            CourseDO course = courseMapper.selectById(courseId);
+            if (course != null && course.getDictId() != null) {
+                SysDictDO dict = sysDictMapper.selectById(course.getDictId());
+                return dict != null ? dict.getDictName() : "";
+            }
+            return "";
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private String getCollegeName(Long collegeId) {
+        if (collegeId == null) return "";
+        try {
+            var college = collegeMapper.selectById(collegeId);
+            return college != null ? college.getCollegeName() : "";
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private String getMajorName(Long majorId) {
+        if (majorId == null) return "";
+        try {
+            var major = majorMapper.selectById(majorId);
+            return major != null ? major.getMajorName() : "";
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
     private VersionListRespDTO convertToListRespDTO(VersionHistoryDO version) {
         VersionListRespDTO dto = new VersionListRespDTO();
         BeanUtil.copyProperties(version, dto);
@@ -554,5 +821,83 @@ public class VersionHistoryServiceImpl extends ServiceImpl<VersionHistoryMapper,
         }
 
         return dto;
+    }
+
+    @Override
+    public void exportVersionToExcel(String versionId, HttpServletResponse response) {
+        VersionHistoryDO version = versionHistoryMapper.selectById(versionId);
+        if (version == null) {
+            throw new ServiceException("版本不存在");
+        }
+
+        List<TrainingProgramDetailSelectRespDTO> dataList = getVersionSnapshotDetail(versionId);
+        if (dataList.isEmpty()) {
+            throw new ServiceException("该版本没有课程数据");
+        }
+
+        try {
+            List<TrainingProgramExcelTemplate> excelDataList = new ArrayList<>(dataList.stream()
+                    .map(data -> {
+                        TrainingProgramExcelTemplate excelDTO = new TrainingProgramExcelTemplate();
+                        BeanUtil.copyProperties(data, excelDTO);
+                        buildTotalTime(data, excelDTO);
+                        excelDTO.setElectiveCreditRequirement(data.getRequiredElective() != null ? data.getRequiredElective().toString() : "");
+                        excelDTO.setElectiveGroupCode("");
+                        return excelDTO;
+                    })
+                    .toList());
+
+            Map<String, Integer> courseTypeSortMap = new HashMap<>();
+            List<SysDictDO> dictList = sysDictMapper.selectList(
+                new LambdaQueryWrapper<SysDictDO>().eq(SysDictDO::getDictType, "course_type")
+            );
+            for (SysDictDO dict : dictList) {
+                courseTypeSortMap.put(dict.getDictName(), dict.getSortOrder());
+            }
+
+            excelDataList.sort(
+                    Comparator.<TrainingProgramExcelTemplate, Integer>comparing(
+                                    dto -> courseTypeSortMap.getOrDefault(dto.getCourseType(), Integer.MAX_VALUE)
+                            )
+                            .thenComparing(
+                                    TrainingProgramExcelTemplate::getCourseNature,
+                                    Comparator.nullsLast(Comparator.naturalOrder())
+                            )
+                            .thenComparing(
+                                    TrainingProgramExcelTemplate::getElectiveGroupCode,
+                                    Comparator.nullsLast(Comparator.naturalOrder())
+                            )
+            );
+
+            List<TrainingProgramExcelTemplate> finalList = ExcelExportUtils.insertSummaryRows(excelDataList);
+
+            String fileName = URLEncoder.encode(dataList.get(0).getName() + "_V" + version.getVersionNumber() + "_专业设置及学时分配表.xlsx", StandardCharsets.UTF_8);
+            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            response.setHeader("Content-Disposition", "attachment; filename=" + fileName);
+
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+            EasyExcel.write(baos, TrainingProgramExcelTemplate.class)
+                    .sheet("培养计划")
+                    .doWrite(finalList);
+
+            byte[] mergedBytes = ExcelExportUtils.mergeConsecutiveSameCells(
+                    baos.toByteArray(), 0, 0, 1, 12
+            );
+
+            response.getOutputStream().write(mergedBytes);
+            response.getOutputStream().flush();
+
+        } catch (IOException e) {
+            throw new ServiceException("导出Excel失败: " + e.getMessage());
+        }
+    }
+
+    private void buildTotalTime(TrainingProgramDetailSelectRespDTO data, TrainingProgramExcelTemplate excelDTO) {
+        if (data.getHoursUnit() != null && data.getHoursUnit() == 1) {
+            excelDTO.setTotalHours(data.getTotalWeeks() != null ? data.getTotalWeeks() + "周" : "");
+        } else {
+            excelDTO.setTotalHours(data.getTotalHours() != null ? data.getTotalHours() + "学时" : "");
+        }
     }
 }

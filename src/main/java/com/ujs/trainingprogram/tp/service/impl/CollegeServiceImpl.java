@@ -108,7 +108,6 @@ public class CollegeServiceImpl extends ServiceImpl<CollegeMapper, CollegeDO> im
             return new ArrayList<>();
         }
 
-        // 按学院分组，使用两个字段作为唯一键
         Map<String, List<CollegePageMajorDTO>> groupByCollege = flatList.stream()
                 .collect(Collectors.groupingBy(dto ->
                         dto.getCollegeCode() + ":" + dto.getCollegeName()
@@ -117,6 +116,7 @@ public class CollegeServiceImpl extends ServiceImpl<CollegeMapper, CollegeDO> im
             CollegePageMajorDTO first = majors.get(0);
 
             List<CollegeMajorPageRespDTO> majorList = majors.stream()
+                    .filter(majorFlat -> StrUtil.isNotBlank(majorFlat.getMajorName()))
                     .map(majorFlat -> CollegeMajorPageRespDTO.builder()
                             .majorCode(majorFlat.getMajorCode())
                             .majorName(majorFlat.getMajorName())
@@ -125,11 +125,9 @@ public class CollegeServiceImpl extends ServiceImpl<CollegeMapper, CollegeDO> im
                             .build())
                     .toList();
 
-            // 计算专业数量
-            int majorNum = majors.size();
+            int majorNum = majorList.size();
 
-            // 计算学院总课程数
-            int totalCourseNum = majors.stream()
+            int totalCourseNum = majorList.stream()
                     .mapToInt(major -> Optional.ofNullable(major.getCourseNum()).orElse(0))
                     .sum();
 

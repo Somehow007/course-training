@@ -161,6 +161,7 @@ export interface CoursePageItem {
   courseNatureDesc: string
   courseName: string
   collegeName: string
+  collegeId?: number
   delFlag: number
 }
 
@@ -219,6 +220,7 @@ export interface TrainingProgramAddCourseRequest {
 export interface TrainingProgramDetailItem {
   id: number
   name: string
+  courseId: string
   courseName: string
   courseNature: number
   courseType: string
@@ -227,13 +229,13 @@ export interface TrainingProgramDetailItem {
   majorName: string
   majorId: number
   totalCredits: number
-  totalHours: number
+  totalHours: number | null
   totalWeeks: number | null
   hoursUnit: number
-  hourTeach: number
-  hourPractice: number
-  hourOperation: number
-  hourOutside: number
+  hourTeach: number | null
+  hourPractice: number | null
+  hourOperation: number | null
+  hourOutside: number | null
   hourWeek: number | null
   requiredElective: number | null
   term: number | null

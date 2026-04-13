@@ -4,47 +4,25 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.ujs.trainingprogram.tp.common.enums.CourseNatureEnum;
 import lombok.Data;
 
-/**
- * 分页查询课程返回实体
- */
 @Data
 public class CoursePageQueryRespDTO {
 
-    /**
-     * 课程id
-     */
     private Long courseId;
 
-    /**
-     * 课程类别
-     */
     private String courseType;
 
-    /**
-     * 课程性质
-     */
     private Integer courseNature;
 
-    /**
-     * 课程性质（字符串形式）
-     */
     @JsonProperty("courseNatureDesc")
     public String getCourseNatureDesc() {
         return CourseNatureEnum.findValueByType(this.courseNature);
     }
 
-    /**
-     * 课程名称
-     */
     private String courseName;
 
-    /**
-     * 开课学院
-     */
     private String collegeName;
 
-    /**
-     * 删除标识（0:未删除 1:已删除）
-     */
+    private Long collegeId;
+
     private Integer delFlag;
 }

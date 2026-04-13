@@ -47,4 +47,14 @@ public class TrainingProgramPageRespDTO {
      * 描述
      */
     private String description;
+
+    /**
+     * 当前版本号
+     */
+    private Integer currentVersion;
+
+    /**
+     * 版本状态（0:草稿 1:已发布 2:已归档 3:已回滚）
+     */
+    private Integer versionStatus;
 }

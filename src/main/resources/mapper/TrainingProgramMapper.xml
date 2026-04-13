@@ -31,6 +31,8 @@
             c.college_name AS collegeName,
             tp.year,
             tp.description,
+            tp.current_version AS currentVersion,
+            tp.version_status AS versionStatus,
             tp.create_time,
             tp.update_time
         FROM training_program tp

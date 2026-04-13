@@ -1,21 +1,28 @@
 <template>
   <div class="training-program-detail">
-    <el-page-header @back="goBack" title="返回列表">
+    <el-page-header @back="handleGoBack" title="返回列表">
       <template #content>
         <div class="page-header-content">
           <span class="page-title">培养计划详情</span>
           <el-tag v-if="currentVersion" type="success" size="large" class="version-tag">
             V{{ currentVersion.versionNumber }} · {{ currentVersion.versionStatusDesc }}
           </el-tag>
+          <el-tag v-if="hasUnsavedChanges" type="warning" size="large" class="unsaved-tag">
+            未保存
+          </el-tag>
         </div>
       </template>
       <template #extra>
         <div class="header-actions">
-          <el-button type="primary" @click="handleAddCourse" v-permission="'100'">
+          <el-button type="primary" @click="handleAddCourse" v-permission="'100'" :disabled="isViewingHistory">
             <el-icon><Plus /></el-icon>
             添加课程
           </el-button>
-          <el-button type="success" @click="handleImport" v-permission="'100'">
+          <el-button type="success" @click="handleSaveChanges" v-permission="'100'" :disabled="!hasUnsavedChanges || isViewingHistory" :loading="saveLoading">
+            <el-icon><Check /></el-icon>
+            保存修改
+          </el-button>
+          <el-button type="success" @click="handleImport" v-permission="'100'" :disabled="isViewingHistory">
             <el-icon><Upload /></el-icon>
             导入更新
           </el-button>
@@ -27,10 +34,23 @@
       </template>
     </el-page-header>
 
+    <el-alert
+      v-if="isViewingHistory"
+      type="info"
+      :closable="false"
+      show-icon
+      class="history-alert"
+    >
+      <template #title>
+        您正在查看历史版本 V{{ viewingVersionInfo?.versionNumber }} 的数据，此版本数据已归档不可修改。
+        <el-button type="primary" link @click="backToCurrentVersion">返回当前版本</el-button>
+      </template>
+    </el-alert>
+
     <div class="detail-layout">
       <div class="main-content">
         <el-card>
-          <el-table :data="detailData" v-loading="loading" stripe border empty-text="暂无课程数据" max-height="calc(100vh - 260px)">
+          <el-table :data="displayData" v-loading="loading" stripe border empty-text="暂无课程数据" max-height="calc(100vh - 320px)">
             <el-table-column prop="courseName" label="课程名称" width="150" fixed />
             <el-table-column prop="courseType" label="课程类别" width="120" />
             <el-table-column label="课程性质" width="80">
@@ -48,7 +68,7 @@
             <el-table-column prop="hourOutside" label="实践" width="60" />
             <el-table-column prop="term" label="学期" width="60" />
             <el-table-column prop="remark" label="备注" min-width="100" />
-            <el-table-column label="操作" width="120" fixed="right" v-if="userStore.isAdmin">
+            <el-table-column label="操作" width="120" fixed="right" v-if="userStore.isAdmin && !isViewingHistory">
               <template #default="{ row }">
                 <el-button type="primary" link size="small" @click="handleEditCourse(row)">编辑</el-button>
                 <el-button type="danger" link size="small" @click="handleDeleteCourse(row)">删除</el-button>
@@ -75,7 +95,7 @@
                 :hollow="!isCurrentVersion(ver)"
                 size="large"
               >
-                <div class="version-item" :class="{ active: isCurrentVersion(ver) }" @click="handleViewVersion(ver)">
+                <div class="version-item" :class="{ active: isCurrentVersion(ver), viewing: isViewingVersion(ver) }" @click="handleViewVersion(ver)">
                   <div class="version-item-header">
                     <span class="version-number">V{{ ver.versionNumber }}</span>
                     <el-tag :type="getStatusTagType(ver.versionStatus)" size="small">
@@ -90,7 +110,8 @@
                   <div v-if="ver.changeDescription" class="version-desc">
                     {{ ver.changeDescription }}
                   </div>
-                  <div v-if="isCurrentVersion(ver)" class="version-current-badge">当前版本</div>
+                  <div v-if="isCurrentVersion(ver) && !isViewingHistory" class="version-current-badge">当前版本</div>
+                  <div v-if="isViewingVersion(ver)" class="version-viewing-badge">正在查看</div>
                 </div>
               </el-timeline-item>
             </el-timeline>
@@ -103,7 +124,7 @@
     <el-dialog v-model="addDialogVisible" title="添加课程" width="600px">
       <el-form ref="addFormRef" :model="addForm" :rules="addRules" label-width="100px">
         <el-form-item label="课程" prop="courseId">
-          <CourseSelect v-model="addForm.courseId" placeholder="请选择课程" />
+          <CourseSelect v-model="addForm.courseId" placeholder="请选择课程" @change="handleCourseChange" />
         </el-form-item>
         <el-form-item label="开课学院" prop="collegeId">
           <CollegeSelect v-model="addForm.collegeId" placeholder="请选择学院" />
@@ -258,17 +279,53 @@
         </div>
       </div>
     </el-dialog>
+
+    <el-dialog v-model="saveDialogVisible" title="保存修改" width="500px" :close-on-click-modal="false">
+      <el-form ref="saveFormRef" :model="saveForm" :rules="saveRules" label-width="100px">
+        <el-form-item label="版本名称">
+          <el-input v-model="saveForm.versionName" placeholder="可选，留空将自动生成" />
+        </el-form-item>
+        <el-form-item label="变更说明" prop="changeDescription">
+          <el-input
+            v-model="saveForm.changeDescription"
+            type="textarea"
+            :rows="3"
+            placeholder="请输入本次修改的变更说明"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="saveDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="saveLoading" @click="confirmSaveChanges">
+          确认保存
+        </el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="leaveConfirmVisible" title="确认离开" width="450px" :close-on-click-modal="false">
+      <div class="leave-confirm-content">
+        <el-icon class="warning-icon"><WarningFilled /></el-icon>
+        <p>您有未保存的更改，是否保存后再离开？</p>
+      </div>
+      <template #footer>
+        <div class="leave-confirm-footer">
+          <el-button @click="handleLeaveWithoutSave">放弃更改并离开</el-button>
+          <el-button type="primary" @click="handleSaveAndLeave" :loading="saveLoading">保存并离开</el-button>
+          <el-button @click="leaveConfirmVisible = false">取消</el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ref, reactive, onMounted, computed, onBeforeUnmount } from 'vue'
+import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules, UploadFile } from 'element-plus'
-import { Plus, Upload, Download, UploadFilled, RefreshLeft, Sort } from '@element-plus/icons-vue'
+import { Plus, Upload, Download, UploadFilled, RefreshLeft, Sort, Check, WarningFilled } from '@element-plus/icons-vue'
 import { trainingProgramApi } from '@/api/training-program'
-import { versionApi, type VersionListResponse } from '@/api/version'
+import { versionApi, type VersionListResponse, type CourseChangeItem } from '@/api/version'
 import type { TrainingProgramDetailItem } from '@/types/api'
 import CollegeSelect from '@/components/business/CollegeSelect.vue'
 import MajorSelect from '@/components/business/MajorSelect.vue'
@@ -286,6 +343,7 @@ const userStore = useUserStore()
 const programId = route.params.id as string
 
 const loading = ref(false)
+const originalData = ref<TrainingProgramDetailItem[]>([])
 const detailData = ref<TrainingProgramDetailItem[]>([])
 const courseTypeDict = ref<SysDictPageItem[]>([])
 
@@ -295,6 +353,22 @@ const currentVersion = computed(() => versionList.value.length > 0 ? versionList
 
 const viewingVersion = ref<VersionListResponse | null>(null)
 const versionDetailDialogVisible = ref(false)
+
+const viewingVersionId = ref<string | null>(null)
+const viewingVersionInfo = ref<VersionListResponse | null>(null)
+const isViewingHistory = computed(() => viewingVersionId.value !== null)
+
+const displayData = computed(() => {
+  return sortCourses(detailData.value)
+})
+
+const addedCourses = ref<CourseChangeItem[]>([])
+const updatedCourses = ref<CourseChangeItem[]>([])
+const deletedCourseIds = ref<string[]>([])
+
+const hasUnsavedChanges = computed(() => {
+  return addedCourses.value.length > 0 || updatedCourses.value.length > 0 || deletedCourseIds.value.length > 0
+})
 
 async function loadDetail() {
   if (!programId) {
@@ -308,9 +382,23 @@ async function loadDetail() {
       dictStore.getDictByType('course_type')
     ])
     courseTypeDict.value = dict
-    detailData.value = sortCourses(data)
+    originalData.value = JSON.parse(JSON.stringify(data))
+    detailData.value = JSON.parse(JSON.stringify(data))
+    resetChanges()
   } catch (error) {
     ElMessage.error('加载详情失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+async function loadVersionDetail(versionId: string) {
+  loading.value = true
+  try {
+    const data = await versionApi.getVersionSnapshotDetail(versionId)
+    detailData.value = data
+  } catch (error) {
+    ElMessage.error('加载版本详情失败')
   } finally {
     loading.value = false
   }
@@ -327,6 +415,12 @@ async function loadVersionList() {
   } finally {
     versionLoading.value = false
   }
+}
+
+function resetChanges() {
+  addedCourses.value = []
+  updatedCourses.value = []
+  deletedCourseIds.value = []
 }
 
 function sortCourses(courses: TrainingProgramDetailItem[]): TrainingProgramDetailItem[] {
@@ -349,6 +443,10 @@ function isCurrentVersion(ver: VersionListResponse): boolean {
   return ver.id === currentVersion.value.id
 }
 
+function isViewingVersion(ver: VersionListResponse): boolean {
+  return viewingVersionId.value === ver.id
+}
+
 function getVersionTimelineType(status: number): string {
   const types: Record<number, string> = { 0: 'info', 1: 'success', 2: 'warning', 3: 'danger' }
   return types[status] || 'info'
@@ -364,17 +462,49 @@ function formatTime(time: string): string {
   return time.replace('T', ' ').substring(0, 19)
 }
 
-function goBack() {
-  router.push('/training-program/list')
+async function handleGoBack() {
+  if (hasUnsavedChanges.value) {
+    leaveConfirmVisible.value = true
+    pendingNavigation.value = '/training-program/list'
+  } else {
+    router.push('/training-program/list')
+  }
 }
 
 function goToVersionManage() {
   router.push('/version')
 }
 
-function handleViewVersion(ver: VersionListResponse) {
-  viewingVersion.value = ver
-  versionDetailDialogVisible.value = true
+async function handleViewVersion(ver: VersionListResponse) {
+  if (isCurrentVersion(ver)) {
+    viewingVersionId.value = null
+    viewingVersionInfo.value = null
+    await loadDetail()
+    resetChanges()
+  } else {
+    if (hasUnsavedChanges.value) {
+      try {
+        await ElMessageBox.confirm(
+          '您有未保存的更改，查看历史版本将丢失这些更改，是否继续？',
+          '提示',
+          { type: 'warning', confirmButtonText: '继续', cancelButtonText: '取消' }
+        )
+      } catch {
+        return
+      }
+    }
+    viewingVersionId.value = ver.id
+    viewingVersionInfo.value = ver
+    await loadVersionDetail(ver.id)
+    resetChanges()
+  }
+}
+
+function backToCurrentVersion() {
+  viewingVersionId.value = null
+  viewingVersionInfo.value = null
+  loadDetail()
+  resetChanges()
 }
 
 async function handleRollbackFromDetail(ver: VersionListResponse) {
@@ -387,6 +517,8 @@ async function handleRollbackFromDetail(ver: VersionListResponse) {
     await versionApi.rollbackVersion(ver.id)
     ElMessage.success('回滚成功')
     versionDetailDialogVisible.value = false
+    viewingVersionId.value = null
+    viewingVersionInfo.value = null
     loadDetail()
     loadVersionList()
   } catch (error) {
@@ -408,7 +540,12 @@ function handleCompareFromDetail(ver: VersionListResponse) {
 }
 
 function handleExport() {
-  exportExcel(programId)
+  if (isViewingHistory.value && viewingVersionInfo.value) {
+    const programName = detailData.value.length > 0 ? detailData.value[0].name : '培养计划'
+    versionApi.exportVersionToExcel(viewingVersionInfo.value.id, viewingVersionInfo.value.versionNumber, programName)
+  } else {
+    exportExcel(programId)
+  }
 }
 
 const addDialogVisible = ref(false)
@@ -417,6 +554,8 @@ const submitLoading = ref(false)
 
 const addForm = reactive({
   courseId: '',
+  courseName: '',
+  courseNature: 0,
   collegeId: '',
   majorId: '',
   totalCredits: 0,
@@ -436,20 +575,58 @@ const addRules: FormRules = {
 
 function handleAddCourse() {
   Object.assign(addForm, {
-    courseId: '', collegeId: '', majorId: '', totalCredits: 0, totalHours: 0,
+    courseId: '', courseName: '', courseNature: 0, collegeId: '', majorId: '', totalCredits: 0, totalHours: 0,
     hourTeach: 0, hourPractice: 0, hourOperation: 0, hourOutside: 0,
     term: undefined, remark: ''
   })
   addDialogVisible.value = true
 }
 
+function handleCourseChange(_val: string | number | undefined, courseInfo?: { courseName: string; courseNature: number; collegeId: string }) {
+  if (courseInfo) {
+    addForm.courseName = courseInfo.courseName
+    addForm.courseNature = courseInfo.courseNature
+    if (!addForm.collegeId && courseInfo.collegeId) {
+      addForm.collegeId = courseInfo.collegeId
+    }
+  }
+}
+
 async function handleAddSubmit() {
   await addFormRef.value?.validate()
   submitLoading.value = true
   try {
-    await trainingProgramApi.addCourse({
-      trainingProgramId: programId,
+    const newItem: TrainingProgramDetailItem = {
+      id: Date.now(),
+      name: '',
       courseId: addForm.courseId,
+      courseName: addForm.courseName,
+      courseNature: addForm.courseNature,
+      courseType: '',
+      collegeId: addForm.collegeId ? parseInt(addForm.collegeId) : 0,
+      collegeName: '',
+      majorId: addForm.majorId ? parseInt(addForm.majorId) : 0,
+      majorName: '',
+      totalCredits: addForm.totalCredits,
+      totalHours: addForm.totalHours || null,
+      totalWeeks: null,
+      hoursUnit: 0,
+      hourTeach: addForm.hourTeach || null,
+      hourPractice: addForm.hourPractice || null,
+      hourOperation: addForm.hourOperation || null,
+      hourOutside: addForm.hourOutside || null,
+      hourWeek: null,
+      requiredElective: null,
+      term: addForm.term ?? null,
+      remark: addForm.remark || null,
+      version: 1
+    }
+    detailData.value.push(newItem)
+    
+    addedCourses.value.push({
+      courseId: addForm.courseId,
+      courseName: addForm.courseName,
+      courseNature: addForm.courseNature,
       collegeId: addForm.collegeId,
       majorId: addForm.majorId,
       totalCredits: addForm.totalCredits,
@@ -461,9 +638,9 @@ async function handleAddSubmit() {
       term: addForm.term,
       remark: addForm.remark
     })
-    ElMessage.success('添加成功')
+    
+    ElMessage.success('已添加到待保存列表')
     addDialogVisible.value = false
-    loadDetail()
   } catch (error) {
     console.error('添加失败:', error)
   } finally {
@@ -498,11 +675,11 @@ function handleEditCourse(row: TrainingProgramDetailItem) {
     courseName: row.courseName,
     majorId: String(row.majorId),
     totalCredits: row.totalCredits,
-    totalHours: row.totalHours,
-    hourTeach: row.hourTeach,
-    hourPractice: row.hourPractice,
-    hourOperation: row.hourOperation,
-    hourOutside: row.hourOutside,
+    totalHours: row.totalHours || 0,
+    hourTeach: row.hourTeach || 0,
+    hourPractice: row.hourPractice || 0,
+    hourOperation: row.hourOperation || 0,
+    hourOutside: row.hourOutside || 0,
     term: row.term ?? undefined,
     remark: row.remark ?? ''
   })
@@ -513,21 +690,55 @@ async function handleEditSubmit() {
   await editFormRef.value?.validate()
   submitLoading.value = true
   try {
-    await trainingProgramApi.updateCourse({
-      id: editForm.id,
-      majorId: editForm.majorId,
-      totalCredits: editForm.totalCredits,
-      totalHours: editForm.totalHours,
-      hourTeach: editForm.hourTeach,
-      hourPractice: editForm.hourPractice,
-      hourOperation: editForm.hourOperation,
-      hourOutside: editForm.hourOutside,
-      term: editForm.term,
-      remark: editForm.remark
-    })
-    ElMessage.success('修改成功')
+    const index = detailData.value.findIndex(item => String(item.id) === editForm.id)
+    if (index !== -1) {
+      detailData.value[index] = {
+        ...detailData.value[index],
+        majorId: editForm.majorId ? parseInt(editForm.majorId) : detailData.value[index].majorId,
+        totalCredits: editForm.totalCredits,
+        totalHours: editForm.totalHours || null,
+        hourTeach: editForm.hourTeach || null,
+        hourPractice: editForm.hourPractice || null,
+        hourOperation: editForm.hourOperation || null,
+        hourOutside: editForm.hourOutside || null,
+        term: editForm.term ?? null,
+        remark: editForm.remark || null
+      }
+    }
+    
+    const existingUpdateIndex = updatedCourses.value.findIndex(item => item.id === editForm.id)
+    if (existingUpdateIndex !== -1) {
+      updatedCourses.value[existingUpdateIndex] = {
+        id: editForm.id,
+        courseId: String(detailData.value[index]?.courseId || ''),
+        majorId: editForm.majorId,
+        totalCredits: editForm.totalCredits,
+        totalHours: editForm.totalHours,
+        hourTeach: editForm.hourTeach,
+        hourPractice: editForm.hourPractice,
+        hourOperation: editForm.hourOperation,
+        hourOutside: editForm.hourOutside,
+        term: editForm.term,
+        remark: editForm.remark
+      }
+    } else {
+      updatedCourses.value.push({
+        id: editForm.id,
+        courseId: String(detailData.value[index]?.courseId || ''),
+        majorId: editForm.majorId,
+        totalCredits: editForm.totalCredits,
+        totalHours: editForm.totalHours,
+        hourTeach: editForm.hourTeach,
+        hourPractice: editForm.hourPractice,
+        hourOperation: editForm.hourOperation,
+        hourOutside: editForm.hourOutside,
+        term: editForm.term,
+        remark: editForm.remark
+      })
+    }
+    
+    ElMessage.success('已记录修改，请点击保存按钮提交')
     editDialogVisible.value = false
-    loadDetail()
   } catch (error) {
     console.error('修改失败:', error)
   } finally {
@@ -540,9 +751,24 @@ async function handleDeleteCourse(row: TrainingProgramDetailItem) {
     await ElMessageBox.confirm(`确定要删除课程"${row.courseName}"吗？`, '删除确认', {
       confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning'
     })
-    await trainingProgramApi.deleteCourse(String(row.id))
-    ElMessage.success('删除成功')
-    loadDetail()
+    
+    const index = detailData.value.findIndex(item => String(item.id) === String(row.id))
+    if (index !== -1) {
+      detailData.value.splice(index, 1)
+    }
+    
+    const addedIndex = addedCourses.value.findIndex(item => item.courseId === String(row.courseId))
+    if (addedIndex !== -1) {
+      addedCourses.value.splice(addedIndex, 1)
+    } else {
+      deletedCourseIds.value.push(String(row.id))
+      const updatedIndex = updatedCourses.value.findIndex(item => item.id === String(row.id))
+      if (updatedIndex !== -1) {
+        updatedCourses.value.splice(updatedIndex, 1)
+      }
+    }
+    
+    ElMessage.success('已标记删除，请点击保存按钮提交')
   } catch (error) {
     if (error !== 'cancel') console.error('删除失败:', error)
   }
@@ -577,7 +803,6 @@ async function handleImportSubmit() {
     return
   }
 
-  const program = versionList.value.length > 0 ? null : null
   const collegeId = route.query.collegeId as string
   const majorId = route.query.majorId as string
 
@@ -591,6 +816,7 @@ async function handleImportSubmit() {
     )
     ElMessage.success('导入成功，已创建新版本')
     importDialogVisible.value = false
+    resetChanges()
     loadDetail()
     loadVersionList()
   } catch (error) {
@@ -600,9 +826,97 @@ async function handleImportSubmit() {
   }
 }
 
+const saveDialogVisible = ref(false)
+const saveFormRef = ref<FormInstance>()
+const saveLoading = ref(false)
+const saveForm = reactive({
+  versionName: '',
+  changeDescription: ''
+})
+
+const saveRules: FormRules = {
+  changeDescription: [{ required: true, message: '请输入变更说明', trigger: 'blur' }]
+}
+
+function handleSaveChanges() {
+  saveForm.versionName = ''
+  saveForm.changeDescription = ''
+  saveDialogVisible.value = true
+}
+
+async function confirmSaveChanges() {
+  await saveFormRef.value?.validate()
+  saveLoading.value = true
+  try {
+    await versionApi.saveChangesAndCreateVersion({
+      trainingProgramId: programId,
+      versionName: saveForm.versionName || undefined,
+      changeDescription: saveForm.changeDescription,
+      addedCourses: addedCourses.value,
+      updatedCourses: updatedCourses.value,
+      deletedCourseIds: deletedCourseIds.value
+    })
+    ElMessage.success('保存成功，已创建新版本')
+    saveDialogVisible.value = false
+    resetChanges()
+    loadDetail()
+    loadVersionList()
+  } catch (error) {
+    console.error('保存失败:', error)
+    ElMessage.error('保存失败')
+  } finally {
+    saveLoading.value = false
+  }
+}
+
+const leaveConfirmVisible = ref(false)
+const pendingNavigation = ref<string | null>(null)
+
+async function handleSaveAndLeave() {
+  if (!saveForm.changeDescription) {
+    saveForm.changeDescription = '保存并离开'
+  }
+  await confirmSaveChanges()
+  if (!hasUnsavedChanges.value && pendingNavigation.value) {
+    router.push(pendingNavigation.value)
+  }
+  leaveConfirmVisible.value = false
+}
+
+function handleLeaveWithoutSave() {
+  resetChanges()
+  detailData.value = JSON.parse(JSON.stringify(originalData.value))
+  leaveConfirmVisible.value = false
+  if (pendingNavigation.value) {
+    router.push(pendingNavigation.value)
+  }
+}
+
+onBeforeRouteLeave((to, _from, next) => {
+  if (hasUnsavedChanges.value) {
+    pendingNavigation.value = to.fullPath
+    leaveConfirmVisible.value = true
+    next(false)
+  } else {
+    next()
+  }
+})
+
+function handleBeforeUnload(e: BeforeUnloadEvent) {
+  if (hasUnsavedChanges.value) {
+    e.preventDefault()
+    e.returnValue = ''
+  }
+}
+
 onMounted(() => {
   loadDetail()
   loadVersionList()
+  window.addEventListener('beforeunload', handleBeforeUnload)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('beforeunload', handleBeforeUnload)
 })
 </script>
 
@@ -623,11 +937,24 @@ onMounted(() => {
     .version-tag {
       font-weight: 500;
     }
+
+    .unsaved-tag {
+      animation: pulse 2s infinite;
+    }
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
   }
 
   .header-actions {
     display: flex;
     gap: 8px;
+  }
+
+  .history-alert {
+    margin-top: 16px;
   }
 
   .detail-layout {
@@ -668,6 +995,11 @@ onMounted(() => {
           &.active {
             background-color: #ecf5ff;
             border: 1px solid #b3d8ff;
+          }
+
+          &.viewing {
+            background-color: #fdf6ec;
+            border: 1px solid #e6a23c;
           }
 
           .version-item-header {
@@ -714,6 +1046,13 @@ onMounted(() => {
             color: #409eff;
             font-weight: 500;
           }
+
+          .version-viewing-badge {
+            margin-top: 4px;
+            font-size: 11px;
+            color: #e6a23c;
+            font-weight: 500;
+          }
         }
       }
     }
@@ -734,6 +1073,29 @@ onMounted(() => {
       gap: 10px;
       justify-content: flex-end;
     }
+  }
+
+  .leave-confirm-content {
+    text-align: center;
+    padding: 20px 0;
+
+    .warning-icon {
+      font-size: 48px;
+      color: #e6a23c;
+      margin-bottom: 16px;
+    }
+
+    p {
+      font-size: 16px;
+      color: #606266;
+      margin: 0;
+    }
+  }
+
+  .leave-confirm-footer {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
   }
 }
 </style>

@@ -26,6 +26,7 @@
         c.id AS courseId,
         c.course_name AS courseName,
         c.course_nature AS courseNature,
+        c.college_id AS collegeId,
         c.del_flag AS delFlag,
         dic.dict_name AS courseType,
         col.college_name AS collegeName

@@ -1,17 +1,16 @@
 <template>
   <div class="version-compare-container">
-    <el-card>
-      <template #header>
-        <div class="card-header">
-          <el-page-header @back="goBack" title="返回">
-            <template #content>
-              <span class="text-large font-600 mr-3">版本对比</span>
-            </template>
-          </el-page-header>
+    <el-page-header @back="goBack" title="返回">
+      <template #content>
+        <div class="page-header-content">
+          <span class="page-title">版本对比</span>
         </div>
       </template>
+    </el-page-header>
 
-      <div v-loading="loading" class="compare-content">
+    <div class="compare-wrapper">
+      <el-card>
+        <div v-loading="loading" class="compare-content">
         <div class="version-info">
           <el-row :gutter="20">
             <el-col :span="12">
@@ -87,8 +86,9 @@
 
           <DifferenceList :differences="filteredDifferences" />
         </div>
-      </div>
-    </el-card>
+        </div>
+      </el-card>
+    </div>
   </div>
 </template>
 
@@ -155,9 +155,19 @@ onMounted(() => {
 .version-compare-container {
   padding: 20px;
 
-  .card-header {
+  .page-header-content {
     display: flex;
     align-items: center;
+    gap: 12px;
+
+    .page-title {
+      font-size: 18px;
+      font-weight: 600;
+    }
+  }
+
+  .compare-wrapper {
+    margin-top: 20px;
   }
 
   .compare-content {

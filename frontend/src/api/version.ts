@@ -1,4 +1,5 @@
-import request from '@/utils/request'
+import { request } from '@/utils/request'
+import { ElMessage } from 'element-plus'
 
 export interface VersionListParams {
   current: number
@@ -80,6 +81,36 @@ export interface VersionChangeLog {
   createTime: string
 }
 
+export interface CourseChangeItem {
+  id?: string
+  courseId: string
+  collegeId?: string
+  majorId?: string
+  totalCredits?: number
+  totalHours?: number
+  totalWeeks?: number
+  hoursUnit?: number
+  hourTeach?: number
+  hourPractice?: number
+  hourOperation?: number
+  hourOutside?: number
+  hourWeek?: number
+  requiredElective?: number
+  term?: number
+  remark?: string
+  courseNature?: number
+  courseName?: string
+}
+
+export interface VersionSaveChangesParams {
+  trainingProgramId: string
+  versionName?: string
+  changeDescription?: string
+  addedCourses?: CourseChangeItem[]
+  updatedCourses?: CourseChangeItem[]
+  deletedCourseIds?: string[]
+}
+
 export const versionApi = {
   pageVersionHistory: (params: VersionListParams) => {
     return request.get('/api/version/page', { params })
@@ -109,6 +140,10 @@ export const versionApi = {
     return request.get(`/api/version/detail/${versionId}`)
   },
 
+  getVersionSnapshotDetail: (versionId: string) => {
+    return request.get(`/api/version/snapshot-detail/${versionId}`)
+  },
+
   deleteVersion: (versionId: string) => {
     return request.delete(`/api/version/delete/${versionId}`)
   },
@@ -119,5 +154,35 @@ export const versionApi = {
 
   getVersionChangeLogs: (versionId: string) => {
     return request.get(`/api/version/change-logs/${versionId}`)
+  },
+
+  saveChangesAndCreateVersion: (params: VersionSaveChangesParams) => {
+    return request.post('/api/version/save-changes', params)
+  },
+
+  exportVersionToExcel: (versionId: string, versionNumber: number, programName: string) => {
+    const url = `/api/version/export/${versionId}`
+    const filename = `${programName}_V${versionNumber}_专业设置及学时分配表.xlsx`
+    return downloadFile(url, filename)
+  }
+}
+
+async function downloadFile(url: string, filename: string) {
+  try {
+    const response = await fetch(import.meta.env.VITE_API_BASE_URL + url, {
+      credentials: 'include'
+    })
+    if (!response.ok) {
+      throw new Error('下载失败')
+    }
+    const blob = await response.blob()
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = filename
+    link.click()
+    URL.revokeObjectURL(link.href)
+  } catch (error) {
+    ElMessage.error('下载失败')
+    throw error
   }
 }

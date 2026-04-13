@@ -23,6 +23,13 @@ import { ref, watch, onMounted } from 'vue'
 import { courseApi } from '@/api/course'
 import type { SelectOption } from '@/types/api'
 
+interface CourseInfo {
+  courseId: string
+  courseName: string
+  courseNature: number
+  collegeId: string
+}
+
 const props = defineProps<{
   modelValue?: string | number
   placeholder?: string
@@ -32,11 +39,12 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:modelValue': [value: string | number | undefined]
-  change: [value: string | number | undefined]
+  'change': [value: string | number | undefined, courseInfo?: CourseInfo]
 }>()
 
 const selectedValue = ref<string | number | undefined>(props.modelValue)
 const options = ref<SelectOption[]>([])
+const courseMap = ref<Map<string, CourseInfo>>(new Map())
 const loading = ref(false)
 
 watch(() => props.modelValue, (val) => {
@@ -51,6 +59,14 @@ onMounted(async () => {
       label: item.courseName,
       value: item.courseId
     }))
+    res.records.forEach((item) => {
+      courseMap.value.set(item.courseId, {
+        courseId: item.courseId,
+        courseName: item.courseName,
+        courseNature: item.courseNature,
+        collegeId: String(item.collegeId || '')
+      })
+    })
   } finally {
     loading.value = false
   }
@@ -58,6 +74,15 @@ onMounted(async () => {
 
 function handleChange(val: string | number | undefined) {
   emit('update:modelValue', val)
-  emit('change', val)
+  const courseInfo = val ? courseMap.value.get(String(val)) : undefined
+  emit('change', val, courseInfo)
 }
+
+function getCourseInfo(courseId: string): CourseInfo | undefined {
+  return courseMap.value.get(courseId)
+}
+
+defineExpose({
+  getCourseInfo
+})
 </script>

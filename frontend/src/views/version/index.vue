@@ -146,9 +146,8 @@
       <Pagination
         :total="pagination.total"
         :current="pagination.current"
-        :size="pagination.size"
-        @page-change="handlePageChange"
-        @size-change="handleSizeChange"
+        :page-size="pagination.size"
+        @change="handlePageChange"
       />
     </el-card>
 
@@ -223,7 +222,7 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Search, Refresh, Plus, Sort } from '@element-plus/icons-vue'
-import { versionApi, trainingProgramApi } from '@/api'
+import { versionApi, trainingProgramApi, type VersionListResponse } from '@/api'
 import Pagination from '@/components/common/Pagination.vue'
 import CollegeSelect from '@/components/business/CollegeSelect.vue'
 import MajorSelect from '@/components/business/MajorSelect.vue'
@@ -233,9 +232,9 @@ const router = useRouter()
 
 const loading = ref(false)
 const submitLoading = ref(false)
-const versionList = ref([])
+const versionList = ref<VersionListResponse[]>([])
 const trainingProgramList = ref<any[]>([])
-const selectedVersions = ref([])
+const selectedVersions = ref<any[]>([])
 const createDialogVisible = ref(false)
 const createFormRef = ref<FormInstance>()
 
@@ -361,14 +360,9 @@ function handleReset() {
   handleSearch()
 }
 
-function handlePageChange(page: number) {
-  pagination.current = page
-  fetchVersionList()
-}
-
-function handleSizeChange(size: number) {
-  pagination.size = size
-  pagination.current = 1
+function handlePageChange(value: { current: number; pageSize: number }) {
+  pagination.current = value.current
+  pagination.size = value.pageSize
   fetchVersionList()
 }
 
